@@ -160,7 +160,8 @@ export default async function GroupDetailPage({
 
   const { data: members } = await supabase
     .from("group_members")
-    .select("user_id, profiles(id, display_name, email)");
+    .select("user_id, profiles(id, display_name, email)")
+    .eq("group_id", id);
 
   const nameById: Record<string, string> = {};
   (members ?? []).forEach((m: any) => {
