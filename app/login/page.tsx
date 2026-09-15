@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -16,6 +16,29 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Magic link / OAuth failures land here as a URL fragment, e.g.
+    // #error=access_denied&error_description=Email+link+is+invalid+or+has+expired
+    const hash = window.location.hash;
+    if (hash.includes("error")) {
+      const params = new URLSearchParams(hash.slice(1));
+      const description = params.get("error_description");
+      setError(
+        description ? description.replace(/\+/g, " ") : "Sign-in link is invalid or has expired."
+      );
+      window.history.replaceState(null, "", window.location.pathname);
+      return;
+    }
+
+    // auth/callback redirects here with ?error=... when code exchange fails.
+    const searchParams = new URLSearchParams(window.location.search);
+    const callbackError = searchParams.get("error");
+    if (callbackError) {
+      setError(callbackError.replace(/\+/g, " "));
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

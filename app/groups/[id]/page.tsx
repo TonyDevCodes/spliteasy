@@ -133,7 +133,7 @@ export default async function GroupDetailPage({
     notFound();
   }
 
-  const { data: invites } = await supabase
+  const { data: invites, error: invitesError } = await supabase
     .from("group_invites")
     .select("id, token, expires_at")
     .eq("group_id", id)
@@ -142,26 +142,40 @@ export default async function GroupDetailPage({
 
   const latestInvite = invites?.[0];
 
-  const { data: expenses } = await supabase
+  const { data: expenses, error: expensesError } = await supabase
     .from("expenses")
     .select("id, paid_by, amount, description, created_at")
     .eq("group_id", id)
     .order("created_at", { ascending: false });
 
-  const { data: splits } = await supabase
+  const { data: splits, error: splitsError } = await supabase
     .from("expense_splits")
     .select("expense_id, user_id, amount_owed, expenses!inner(group_id)")
     .eq("expenses.group_id", id);
 
-  const { data: settlements } = await supabase
+  const { data: settlements, error: settlementsError } = await supabase
     .from("settlements")
     .select("from_user, to_user, amount")
     .eq("group_id", id);
 
-  const { data: members } = await supabase
+  const { data: members, error: membersError } = await supabase
     .from("group_members")
     .select("user_id, profiles(id, display_name, email)")
     .eq("group_id", id);
+
+  const hasLoadError = Boolean(
+    invitesError || expensesError || splitsError || settlementsError || membersError
+  );
+
+  if (hasLoadError) {
+    console.error("Group detail partial load error:", {
+      invitesError,
+      expensesError,
+      splitsError,
+      settlementsError,
+      membersError,
+    });
+  }
 
   const nameById: Record<string, string> = {};
   (members ?? []).forEach((m: any) => {
@@ -208,6 +222,13 @@ export default async function GroupDetailPage({
         </Link>
       </div>
       <div className="flex w-full max-w-md flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-950">
+        {hasLoadError && (
+          <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+            Some data failed to load — the numbers below may be incomplete.
+            Try refreshing the page.
+          </div>
+        )}
+
         <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
           {group.name}
         </h1>
