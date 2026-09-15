@@ -186,6 +186,16 @@ export default async function GroupDetailPage({
   const balanceLines = computeSettlements(net);
   const hasExpenses = (expenses ?? []).length > 0;
 
+  const totalOwedByMe = balanceLines
+    .filter((line) => line.from === user.id)
+    .reduce((sum, line) => sum + line.amount, 0);
+
+  const totalOwedToMe = balanceLines
+    .filter((line) => line.to === user.id)
+    .reduce((sum, line) => sum + line.amount, 0);
+
+  const myNet = Math.round((totalOwedToMe - totalOwedByMe) * 100) / 100;
+
   return (
     <div className="flex flex-1 flex-col items-center gap-6 bg-zinc-50 px-4 py-12 dark:bg-black">
       <RealtimeGroupListener groupId={group.id} />
@@ -202,9 +212,39 @@ export default async function GroupDetailPage({
           {group.name}
         </h1>
 
+        <div className="flex flex-col gap-1 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+          <h2 className="text-lg font-bold text-black dark:text-zinc-50">
+            Your balance
+          </h2>
+          {myNet === 0 ? (
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              You&apos;re all settled up!
+            </p>
+          ) : (
+            <>
+              {totalOwedByMe > 0 && (
+                <p className="text-base font-semibold text-red-600 dark:text-red-400">
+                  You owe €{totalOwedByMe.toFixed(2)}
+                </p>
+              )}
+              {totalOwedToMe > 0 && (
+                <p className="text-base font-semibold text-green-600 dark:text-green-400">
+                  You are owed €{totalOwedToMe.toFixed(2)}
+                </p>
+              )}
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Net:{" "}
+                {myNet > 0
+                  ? `You are owed €${myNet.toFixed(2)}`
+                  : `You owe €${Math.abs(myNet).toFixed(2)}`}
+              </p>
+            </>
+          )}
+        </div>
+
         <div className="flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
           <h2 className="text-sm font-semibold text-black dark:text-zinc-50">
-            Balances
+            All balances in this group
           </h2>
           {!hasExpenses ? (
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
