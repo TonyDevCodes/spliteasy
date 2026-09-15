@@ -94,7 +94,7 @@ export default function ExpenseForm({ members, currentUserId, addExpenseAction }
           type="text"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full rounded-md border px-3 py-2"
+          className="w-full rounded-md border bg-white px-3 py-2 text-black"
           placeholder="e.g. Dinner"
         />
       </div>
@@ -107,7 +107,7 @@ export default function ExpenseForm({ members, currentUserId, addExpenseAction }
           min="0"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="w-full rounded-md border px-3 py-2"
+          className="w-full rounded-md border bg-white px-3 py-2 text-black"
           placeholder="0.00"
         />
       </div>
@@ -117,7 +117,7 @@ export default function ExpenseForm({ members, currentUserId, addExpenseAction }
         <select
           value={paidBy}
           onChange={(e) => setPaidBy(e.target.value)}
-          className="w-full rounded-md border px-3 py-2"
+          className="w-full rounded-md border bg-white px-3 py-2 text-black"
         >
           {members.map((m) => (
             <option key={m.id} value={m.id}>
@@ -134,7 +134,9 @@ export default function ExpenseForm({ members, currentUserId, addExpenseAction }
             type="button"
             onClick={() => setSplitMode('equally')}
             className={`px-3 py-1.5 rounded-md text-sm ${
-              splitMode === 'equally' ? 'bg-black text-white' : 'bg-zinc-100'
+              splitMode === 'equally'
+                ? 'bg-black text-white'
+                : 'bg-zinc-100 text-black'
             }`}
           >
             Equally
@@ -143,7 +145,9 @@ export default function ExpenseForm({ members, currentUserId, addExpenseAction }
             type="button"
             onClick={() => setSplitMode('custom')}
             className={`px-3 py-1.5 rounded-md text-sm ${
-              splitMode === 'custom' ? 'bg-black text-white' : 'bg-zinc-100'
+              splitMode === 'custom'
+                ? 'bg-black text-white'
+                : 'bg-zinc-100 text-black'
             }`}
           >
             Custom
@@ -164,7 +168,7 @@ export default function ExpenseForm({ members, currentUserId, addExpenseAction }
                 onChange={(e) =>
                   setCustomSplits((prev) => ({ ...prev, [m.id]: e.target.value }))
                 }
-                className="w-28 rounded-md border px-2 py-1"
+                className="w-28 rounded-md border bg-white px-2 py-1 text-black"
                 placeholder="0.00"
               />
             </div>
