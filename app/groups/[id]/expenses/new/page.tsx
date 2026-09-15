@@ -1,0 +1,112 @@
+import { createClient } from '@/lib/supabase/server'
+import { redirect, notFound } from 'next/navigation'
+import ExpenseForm from './ExpenseForm'
+
+export default async function NewExpensePage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id: groupId } = await params
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  const { data: group, error: groupError } = await supabase
+    .from('groups')
+    .select('id, name')
+    .eq('id', groupId)
+    .single()
+
+  if (groupError || !group) {
+    notFound()
+  }
+
+  const { data: members, error: membersError } = await supabase
+    .from('group_members')
+    .select('user_id, profiles(id, display_name, email)')
+    .eq('group_id', groupId)
+
+  if (membersError || !members) {
+    notFound()
+  }
+
+  const formattedMembers = members.map((m: any) => ({
+    id: m.profiles.id,
+    name: m.profiles.display_name || m.profiles.email,
+  }))
+
+  async function addExpense(formData: FormData) {
+    'use server'
+
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      throw new Error('Not authenticated')
+    }
+
+    const description = formData.get('description') as string
+    const paidBy = formData.get('paidBy') as string
+    const amountCents = parseInt(formData.get('amountCents') as string, 10)
+    const splitsRaw = formData.get('splits') as string
+    const splits = JSON.parse(splitsRaw) as { userId: string; amountCents: number }[]
+
+    const totalSplit = splits.reduce((sum, s) => sum + s.amountCents, 0)
+    if (totalSplit !== amountCents) {
+      throw new Error('Split totals do not match expense amount')
+    }
+
+    const { data: expense, error: expenseError } = await supabase
+      .from('expenses')
+      .insert({
+        group_id: groupId,
+        paid_by: paidBy,
+        description,
+        amount: amountCents / 100,
+      })
+      .select('id')
+      .single()
+
+    if (expenseError || !expense) {
+      throw new Error(expenseError?.message || 'Failed to create expense')
+    }
+
+    const splitRows = splits.map((s) => ({
+      expense_id: expense.id,
+      user_id: s.userId,
+      amount_owed: s.amountCents / 100,
+    }))
+
+    const { error: splitsError } = await supabase
+      .from('expense_splits')
+      .insert(splitRows)
+
+    if (splitsError) {
+      throw new Error(splitsError.message)
+    }
+
+    redirect(`/groups/${groupId}`)
+  }
+
+  return (
+    <div className="max-w-lg mx-auto p-6">
+      <h1 className="text-xl font-semibold mb-4">
+        Add expense — {group.name}
+      </h1>
+      <ExpenseForm
+        members={formattedMembers}
+        currentUserId={user.id}
+        addExpenseAction={addExpense}
+      />
+    </div>
+  )
+}
