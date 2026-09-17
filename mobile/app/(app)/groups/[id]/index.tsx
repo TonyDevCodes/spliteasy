@@ -210,6 +210,11 @@ export default function GroupDetailScreen() {
         { event: "*", schema: "public", table: "expense_splits" },
         () => loadGroupData(id)
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "group_members" },
+        () => loadGroupData(id)
+      )
       .subscribe();
 
     return () => {
