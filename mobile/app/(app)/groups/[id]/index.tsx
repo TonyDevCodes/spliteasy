@@ -12,6 +12,8 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-rou
 import { supabase } from "../../../../lib/supabase";
 import { computeSettlements, type BalanceLine } from "../../../../lib/settlements";
 
+const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 type Group = {
   id: string;
   name: string;
@@ -315,7 +317,9 @@ export default function GroupDetailScreen() {
   async function handleShareInvite() {
     if (!invite) return;
     try {
-      await Share.share({ message: `Join my SplitEasy group: /invite/${invite.token}` });
+      await Share.share({
+        message: `Join my SplitEasy group: ${SITE_URL}/invite/${invite.token}`,
+      });
     } catch (shareError) {
       console.error("Share invite error:", shareError);
     }
@@ -469,7 +473,9 @@ export default function GroupDetailScreen() {
                 <Text style={styles.sectionTitle}>Invite link</Text>
                 {invite ? (
                   <>
-                    <Text style={styles.mutedText}>/invite/{invite.token}</Text>
+                    <Text style={styles.mutedText}>
+                      {SITE_URL}/invite/{invite.token}
+                    </Text>
                     <TouchableOpacity style={styles.button} onPress={handleShareInvite}>
                       <Text style={styles.buttonText}>Share invite</Text>
                     </TouchableOpacity>
