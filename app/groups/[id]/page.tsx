@@ -103,6 +103,8 @@ function computeSettlements(net: Record<string, number>): BalanceLine[] {
   return lines;
 }
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export default async function GroupDetailPage({
   params,
 }: {
@@ -209,6 +211,10 @@ export default async function GroupDetailPage({
     .reduce((sum, line) => sum + line.amount, 0);
 
   const myNet = Math.round((totalOwedToMe - totalOwedByMe) * 100) / 100;
+
+  const inviteUrl = latestInvite
+    ? SITE_URL + "/invite/" + latestInvite.token
+    : null;
 
   return (
     <div className="flex flex-1 flex-col items-center gap-6 bg-zinc-50 px-4 py-12 dark:bg-black">
@@ -347,14 +353,19 @@ export default async function GroupDetailPage({
         </div>
 
         <div className="flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-          {latestInvite ? (
-            <p className="break-all text-sm text-zinc-600 dark:text-zinc-400">
-              Invite link: /invite/{latestInvite.token}
-            </p>
-          ) : (
+          {inviteUrl === null ? (
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               No active invite link.
             </p>
+          ) : (
+           <a 
+              href={inviteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="break-all text-sm text-blue-600 hover:underline dark:text-blue-400"
+            >
+              {inviteUrl}
+            </a>
           )}
           <form action={createInvite}>
             <input type="hidden" name="groupId" value={group.id} />
