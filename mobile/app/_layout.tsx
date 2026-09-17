@@ -13,8 +13,9 @@ function RootNavigation() {
     if (loading) return;
 
     const inAuthGroup = segments[0] === "(auth)";
+    const inAuthCallback = segments[0] === "auth";
 
-    if (!session && !inAuthGroup) {
+    if (!session && !inAuthGroup && !inAuthCallback) {
       router.replace("/(auth)/login");
     } else if (session && inAuthGroup) {
       router.replace("/(app)");

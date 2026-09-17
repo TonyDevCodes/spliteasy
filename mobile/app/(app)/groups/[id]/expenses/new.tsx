@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,7 +11,10 @@ import {
   View,
 } from "react-native";
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../../../../../lib/supabase";
+
+const RECEIPTS_BUCKET = "receipts";
 
 type ProfileRow = {
   id: string;
@@ -44,6 +49,9 @@ export default function NewExpenseScreen() {
   const [customSplits, setCustomSplits] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const loadMembers = useCallback(async (id: string) => {
     setLoading(true);
@@ -105,6 +113,79 @@ export default function NewExpenseScreen() {
   const splitTotal = splits.reduce((sum, s) => sum + s.amountCents, 0);
   const splitMismatch = splitMode === "custom" && splitTotal !== amountCents;
 
+  async function handleTakePhoto() {
+    setPhotoError(null);
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+    if (!permission.granted) {
+      setPhotoError(
+        "Camera access is required to take a receipt photo. Enable it in your device settings."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      quality: 0.7,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  }
+
+  async function handleChooseFromLibrary() {
+    setPhotoError(null);
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      setPhotoError(
+        "Photo library access is required to attach a receipt. Enable it in your device settings."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.7,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  }
+
+  function handleRemovePhoto() {
+    setPhotoUri(null);
+    setPhotoError(null);
+  }
+
+  async function uploadReceiptPhoto(uri: string, groupId: string): Promise<string | null> {
+    try {
+      const response = await fetch(uri);
+      const arrayBuffer = await response.arrayBuffer();
+      const extMatch = uri.match(/\.(\w+)$/);
+      const ext = (extMatch?.[1] || "jpg").toLowerCase();
+      const path = `${groupId}/${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(RECEIPTS_BUCKET)
+        .upload(path, arrayBuffer, {
+          contentType: ext === "jpg" ? "image/jpeg" : `image/${ext}`,
+        });
+
+      if (uploadError) {
+        console.error("Receipt upload error:", uploadError);
+        return null;
+      }
+
+      return path;
+    } catch (uploadException) {
+      console.error("Receipt upload error:", uploadException);
+      return null;
+    }
+  }
+
   async function handleSubmit() {
     setError(null);
 
@@ -129,6 +210,14 @@ export default function NewExpenseScreen() {
 
     setSubmitting(true);
 
+    let receiptPath: string | null = null;
+    let receiptUploadFailed = false;
+
+    if (photoUri) {
+      receiptPath = await uploadReceiptPhoto(photoUri, groupId);
+      receiptUploadFailed = receiptPath === null;
+    }
+
     const { data: expense, error: expenseError } = await supabase
       .from("expenses")
       .insert({
@@ -136,6 +225,8 @@ export default function NewExpenseScreen() {
         paid_by: paidBy,
         description: description.trim(),
         amount: amountCents / 100,
+        // Only set once the "receipts" storage bucket exists — see report.
+        ...(receiptPath ? { receipt_url: receiptPath } : {}),
       })
       .select("id")
       .single();
@@ -163,6 +254,14 @@ export default function NewExpenseScreen() {
     }
 
     setSubmitting(false);
+
+    if (receiptUploadFailed) {
+      Alert.alert(
+        "Expense added without receipt",
+        "The expense was saved, but the receipt photo couldn't be uploaded (receipt storage isn't set up yet)."
+      );
+    }
+
     router.back();
   }
 
@@ -264,6 +363,32 @@ export default function NewExpenseScreen() {
         </View>
       )}
 
+      <Text style={styles.label}>Receipt photo</Text>
+      {photoError && <Text style={styles.error}>{photoError}</Text>}
+
+      {photoUri ? (
+        <View style={styles.photoPreviewRow}>
+          <Image source={{ uri: photoUri }} style={styles.photoThumbnail} />
+          <View style={styles.chipRow}>
+            <TouchableOpacity style={styles.chip} onPress={handleTakePhoto}>
+              <Text style={styles.chipText}>Retake</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.chip} onPress={handleRemovePhoto}>
+              <Text style={styles.chipText}>Remove</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.chipRow}>
+          <TouchableOpacity style={styles.chip} onPress={handleTakePhoto}>
+            <Text style={styles.chipText}>Take photo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.chip} onPress={handleChooseFromLibrary}>
+            <Text style={styles.chipText}>Choose from library</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={submitting}>
         {submitting ? (
           <ActivityIndicator color="#fff" />
@@ -351,6 +476,16 @@ const styles = StyleSheet.create({
   mutedText: {
     fontSize: 13,
     color: "#666",
+  },
+  photoPreviewRow: {
+    marginBottom: 16,
+  },
+  photoThumbnail: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: "#eee",
   },
   error: {
     color: "#c00",
