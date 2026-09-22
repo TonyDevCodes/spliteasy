@@ -137,9 +137,12 @@ export default async function GroupDetailPage({
           &larr; Your groups
         </Link>
         <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-          <span className="font-medium text-black dark:text-zinc-50">
+          <Link
+            href="/profile"
+            className="font-medium text-black hover:underline dark:text-zinc-50"
+          >
             {nameById[user.id] ?? getDisplayName({ display_name: null, email: user.email ?? "" })}
-          </span>
+          </Link>
           <SignOutButton small />
         </div>
       </div>

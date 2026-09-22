@@ -1,0 +1,99 @@
+"use client";
+
+import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { validateDisplayNameInput } from "@/lib/displayName";
+
+type Status = "idle" | "saving" | "saved" | "error";
+
+export default function ProfileForm({
+  email,
+  initialName,
+}: {
+  email: string;
+  initialName: string;
+}) {
+  const [name, setName] = useState(initialName);
+  const [status, setStatus] = useState<Status>("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSave() {
+    setStatus("saving");
+    setError(null);
+
+    const result = validateDisplayNameInput(name);
+    if (!result.ok) {
+      setStatus("error");
+      setError(result.error);
+      return;
+    }
+
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setStatus("error");
+      setError("You must be signed in.");
+      return;
+    }
+
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ display_name: result.value })
+      .eq("id", user.id);
+
+    if (updateError) {
+      setStatus("error");
+      setError(updateError.message);
+      return;
+    }
+
+    setName(result.value ?? "");
+    setStatus("saved");
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <label className="text-sm text-zinc-600 dark:text-zinc-400">
+          Email
+        </label>
+        <p className="text-black dark:text-zinc-50">{email}</p>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor="name"
+          className="text-sm text-zinc-600 dark:text-zinc-400"
+        >
+          Name
+        </label>
+        <input
+          id="name"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-black outline-none focus:border-black/30 dark:border-white/[.145] dark:text-zinc-50 dark:focus:border-white/30"
+        />
+      </div>
+
+      {status === "error" && error && (
+        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+      )}
+      {status === "saved" && (
+        <p className="text-sm text-green-600 dark:text-green-400">Saved</p>
+      )}
+
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={status === "saving"}
+        className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+      >
+        {status === "saving" ? "Saving..." : "Save"}
+      </button>
+    </div>
+  );
+}

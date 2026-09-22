@@ -59,7 +59,12 @@ export default async function GroupsPage() {
       <div className="flex w-full max-w-md items-center justify-between text-sm text-zinc-600 dark:text-zinc-400">
         <span>
           Signed in as{" "}
-          <span className="font-medium text-black dark:text-zinc-50">{myName}</span>
+          <Link
+            href="/profile"
+            className="font-medium text-black hover:underline dark:text-zinc-50"
+          >
+            {myName}
+          </Link>
         </span>
         <SignOutButton small />
       </div>
