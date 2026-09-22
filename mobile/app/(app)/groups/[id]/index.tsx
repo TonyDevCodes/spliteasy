@@ -15,6 +15,7 @@ import {
   computeSettlements,
   type BalanceLine,
 } from "../../../../lib/settlements";
+import { ErrorBoundary } from "../../../../lib/ErrorBoundary";
 
 const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -391,6 +392,7 @@ export default function GroupDetailScreen() {
           </View>
 
           {tab === "balances" && (
+            <ErrorBoundary>
             <FlatList
               data={balanceLines}
               keyExtractor={(item, idx) => `${item.from}-${item.to}-${idx}`}
@@ -492,6 +494,7 @@ export default function GroupDetailScreen() {
                 );
               }}
             />
+            </ErrorBoundary>
           )}
 
           {tab === "expenses" && (
