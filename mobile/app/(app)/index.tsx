@@ -109,12 +109,20 @@ export default function GroupsScreen() {
             </TouchableOpacity>
           ),
           headerRight: () => (
-            <TouchableOpacity
-              onPress={() => router.push("/(app)/groups/new")}
-              style={styles.headerButton}
-            >
-              <Text style={styles.headerButtonText}>+ New Group</Text>
-            </TouchableOpacity>
+            <View style={styles.headerRightRow}>
+              <TouchableOpacity
+                onPress={() => router.push("/(app)/profile")}
+                style={styles.headerButton}
+              >
+                <Text style={styles.headerButtonText}>Profile</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => router.push("/(app)/groups/new")}
+                style={styles.headerButton}
+              >
+                <Text style={styles.headerButtonText}>+ New Group</Text>
+              </TouchableOpacity>
+            </View>
           ),
         }}
       />
@@ -214,6 +222,10 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  headerRightRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   headerButton: {
     paddingHorizontal: 8,
