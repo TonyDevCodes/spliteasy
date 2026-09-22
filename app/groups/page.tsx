@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getDisplayName } from "@/lib/displayName";
+import { SignOutButton } from "@/app/sign-out-button";
 
 type GroupRow = {
   id: string;
@@ -21,6 +23,14 @@ export default async function GroupsPage() {
   if (!user) {
     redirect("/login");
   }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name, email")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const myName = profile ? getDisplayName(profile) : getDisplayName({ display_name: null, email: user.email ?? "" });
 
   const { data: memberships, error } = await supabase
     .from("group_members")
@@ -46,6 +56,14 @@ export default async function GroupsPage() {
 
   return (
     <div className="flex flex-1 flex-col items-center gap-6 bg-zinc-50 px-4 py-12 dark:bg-black">
+      <div className="flex w-full max-w-md items-center justify-between text-sm text-zinc-600 dark:text-zinc-400">
+        <span>
+          Signed in as{" "}
+          <span className="font-medium text-black dark:text-zinc-50">{myName}</span>
+        </span>
+        <SignOutButton small />
+      </div>
+
       <div className="flex w-full max-w-md items-center justify-between">
         <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
           Your groups
