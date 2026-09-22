@@ -10,7 +10,11 @@ import {
 } from "react-native";
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { supabase } from "../../../../lib/supabase";
-import { computeSettlements, type BalanceLine } from "../../../../lib/settlements";
+import {
+  computeDetailedBalances,
+  computeSettlements,
+  type BalanceLine,
+} from "../../../../lib/settlements";
 
 const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -69,6 +73,7 @@ export default function GroupDetailScreen() {
   const router = useRouter();
 
   const [tab, setTab] = useState<Tab>("balances");
+  const [balanceView, setBalanceView] = useState<"detailed" | "simplified">("detailed");
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -232,7 +237,7 @@ export default function GroupDetailScreen() {
     return map;
   }, [members]);
 
-  const balanceLines = useMemo<BalanceLine[]>(() => {
+  const simplifiedLines = useMemo<BalanceLine[]>(() => {
     const net: Record<string, number> = {};
 
     expenses.forEach((e) => {
@@ -251,22 +256,29 @@ export default function GroupDetailScreen() {
     return computeSettlements(net);
   }, [expenses, splits, settlements]);
 
+  const detailedLines = useMemo<BalanceLine[]>(
+    () => computeDetailedBalances(expenses, splits, settlements),
+    [expenses, splits, settlements]
+  );
+
+  const balanceLines = balanceView === "detailed" ? detailedLines : simplifiedLines;
+
   const hasExpenses = expenses.length > 0;
 
   const totalOwedByMe = useMemo(
     () =>
-      balanceLines
+      simplifiedLines
         .filter((line) => line.from === currentUserId)
         .reduce((sum, line) => sum + line.amount, 0),
-    [balanceLines, currentUserId]
+    [simplifiedLines, currentUserId]
   );
 
   const totalOwedToMe = useMemo(
     () =>
-      balanceLines
+      simplifiedLines
         .filter((line) => line.to === currentUserId)
         .reduce((sum, line) => sum + line.amount, 0),
-    [balanceLines, currentUserId]
+    [simplifiedLines, currentUserId]
   );
 
   const myNet = Math.round((totalOwedToMe - totalOwedByMe) * 100) / 100;
@@ -414,9 +426,47 @@ export default function GroupDetailScreen() {
                   </Text>
                   {!hasExpenses ? (
                     <Text style={styles.mutedText}>No expenses yet.</Text>
-                  ) : balanceLines.length === 0 ? (
-                    <Text style={styles.mutedText}>All settled up!</Text>
-                  ) : null}
+                  ) : (
+                    <>
+                      <View style={styles.chipRow}>
+                        <TouchableOpacity
+                          style={[
+                            styles.chip,
+                            balanceView === "detailed" && styles.chipActive,
+                          ]}
+                          onPress={() => setBalanceView("detailed")}
+                        >
+                          <Text
+                            style={[
+                              styles.chipText,
+                              balanceView === "detailed" && styles.chipTextActive,
+                            ]}
+                          >
+                            Detailed
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.chip,
+                            balanceView === "simplified" && styles.chipActive,
+                          ]}
+                          onPress={() => setBalanceView("simplified")}
+                        >
+                          <Text
+                            style={[
+                              styles.chipText,
+                              balanceView === "simplified" && styles.chipTextActive,
+                            ]}
+                          >
+                            Simplified
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                      {balanceLines.length === 0 && (
+                        <Text style={styles.mutedText}>All settled up!</Text>
+                      )}
+                    </>
+                  )}
                 </View>
               }
               renderItem={({ item }) => {
@@ -579,6 +629,31 @@ const styles = StyleSheet.create({
   },
   sectionTitleSpaced: {
     marginTop: 16,
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 8,
+  },
+  chip: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  chipActive: {
+    backgroundColor: "#111",
+    borderColor: "#111",
+  },
+  chipText: {
+    fontSize: 14,
+    color: "#333",
+  },
+  chipTextActive: {
+    color: "#fff",
+    fontWeight: "600",
   },
   mutedText: {
     fontSize: 14,
