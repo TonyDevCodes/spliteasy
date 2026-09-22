@@ -17,6 +17,9 @@ import {
 } from "../../../../lib/settlements";
 import { ErrorBoundary } from "../../../../lib/ErrorBoundary";
 import { getDisplayName } from "../../../../lib/displayName";
+import { subscribeToTableChanges, uniqueChannelName } from "../../../../lib/realtime";
+
+const WATCHED_TABLES = ["expenses", "settlements", "expense_splits", "group_members"];
 
 const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -202,29 +205,12 @@ export default function GroupDetailScreen() {
   useEffect(() => {
     if (!id) return;
 
-    const channel = supabase
-      .channel(`group-${id}-changes`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "expenses" },
-        () => loadGroupData(id)
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "settlements" },
-        () => loadGroupData(id)
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "expense_splits" },
-        () => loadGroupData(id)
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "group_members" },
-        () => loadGroupData(id)
-      )
-      .subscribe();
+    const channel = subscribeToTableChanges(
+      supabase,
+      uniqueChannelName(`group-${id}-changes`),
+      WATCHED_TABLES,
+      () => loadGroupData(id)
+    );
 
     return () => {
       supabase.removeChannel(channel);
