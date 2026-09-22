@@ -3,6 +3,9 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { subscribeToTableChanges, uniqueChannelName } from '@/lib/realtime'
+
+const WATCHED_TABLES = ['expenses', 'settlements', 'expense_splits']
 
 export default function RealtimeGroupListener({ groupId }: { groupId: string }) {
   const router = useRouter()
@@ -10,24 +13,12 @@ export default function RealtimeGroupListener({ groupId }: { groupId: string }) 
   useEffect(() => {
     const supabase = createClient()
 
-    const channel = supabase
-      .channel(`group-${groupId}-changes`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'expenses' },
-        () => router.refresh()
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'settlements' },
-        () => router.refresh()
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'expense_splits' },
-        () => router.refresh()
-      )
-      .subscribe()
+    const channel = subscribeToTableChanges(
+      supabase,
+      uniqueChannelName(`group-${groupId}-changes`),
+      WATCHED_TABLES,
+      () => router.refresh()
+    )
 
     return () => {
       supabase.removeChannel(channel)
