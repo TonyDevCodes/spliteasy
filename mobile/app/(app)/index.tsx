@@ -8,7 +8,6 @@ import {
   View,
 } from "react-native";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
-import { useAuth } from "../../lib/auth-context";
 import { supabase } from "../../lib/supabase";
 
 type GroupRow = {
@@ -24,7 +23,6 @@ type MembershipRow = {
 type GroupWithMemberCount = GroupRow & { memberCount: number | null };
 
 export default function GroupsScreen() {
-  const { signOut } = useAuth();
   const router = useRouter();
 
   const [groups, setGroups] = useState<GroupWithMemberCount[]>([]);
@@ -103,11 +101,6 @@ export default function GroupsScreen() {
       <Stack.Screen
         options={{
           title: "Your groups",
-          headerLeft: () => (
-            <TouchableOpacity onPress={signOut} style={styles.headerButton}>
-              <Text style={styles.headerButtonText}>Sign out</Text>
-            </TouchableOpacity>
-          ),
           headerRight: () => (
             <View style={styles.headerRightRow}>
               <TouchableOpacity
