@@ -11,6 +11,7 @@ export default function LoginPage() {
   const supabase = createClient();
 
   const [mode, setMode] = useState<Mode>("sign-in");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -54,6 +55,7 @@ export default function LoginPage() {
             password,
             options: {
               emailRedirectTo: `${window.location.origin}/auth/callback`,
+              data: name.trim() ? { display_name: name.trim() } : undefined,
             },
           });
 
@@ -107,6 +109,21 @@ export default function LoginPage() {
         </h1>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {mode === "sign-up" && (
+            <div className="flex flex-col gap-1">
+              <label htmlFor="name" className="text-sm text-zinc-600 dark:text-zinc-400">
+                Name (optional)
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-black outline-none focus:border-black/30 dark:border-white/[.145] dark:text-zinc-50 dark:focus:border-white/30"
+              />
+            </div>
+          )}
+
           <div className="flex flex-col gap-1">
             <label htmlFor="email" className="text-sm text-zinc-600 dark:text-zinc-400">
               Email

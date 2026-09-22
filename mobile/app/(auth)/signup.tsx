@@ -12,6 +12,7 @@ import { useAuth } from "../../lib/auth-context";
 
 export default function SignupScreen() {
   const { signUp } = useAuth();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +22,7 @@ export default function SignupScreen() {
   async function handleSubmit() {
     setError(null);
     setSubmitting(true);
-    const { error } = await signUp(email, password);
+    const { error } = await signUp(email, password, name);
     setSubmitting(false);
 
     if (error) {
@@ -49,6 +50,14 @@ export default function SignupScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Create account</Text>
+
+      <Text style={styles.label}>Name (optional)</Text>
+      <TextInput
+        style={styles.input}
+        value={name}
+        onChangeText={setName}
+        autoCapitalize="words"
+      />
 
       <Text style={styles.label}>Email</Text>
       <TextInput
