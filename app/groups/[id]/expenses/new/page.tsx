@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
+import { getDisplayName } from '@/lib/displayName'
 import ExpenseForm from './ExpenseForm'
 
 export default async function NewExpensePage({
@@ -39,7 +40,7 @@ export default async function NewExpensePage({
 
   const formattedMembers = members.map((m: any) => ({
     id: m.profiles.id,
-    name: m.profiles.display_name || m.profiles.email,
+    name: getDisplayName(m.profiles),
   }))
 
   async function addExpense(formData: FormData) {

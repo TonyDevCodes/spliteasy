@@ -13,6 +13,7 @@ import {
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../../../../../lib/supabase";
+import { getDisplayName } from "../../../../../lib/displayName";
 
 const RECEIPTS_BUCKET = "receipts";
 
@@ -78,7 +79,7 @@ export default function NewExpenseScreen() {
       .filter((m): m is MemberRow & { profiles: ProfileRow } => m.profiles !== null)
       .map((m) => ({
         id: m.profiles.id,
-        name: m.profiles.display_name || m.profiles.email,
+        name: getDisplayName(m.profiles),
       }));
 
     setMembers(formatted);

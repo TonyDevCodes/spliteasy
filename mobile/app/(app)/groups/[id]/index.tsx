@@ -16,6 +16,7 @@ import {
   type BalanceLine,
 } from "../../../../lib/settlements";
 import { ErrorBoundary } from "../../../../lib/ErrorBoundary";
+import { getDisplayName } from "../../../../lib/displayName";
 
 const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -182,7 +183,7 @@ export default function GroupDetailScreen() {
         .filter((m): m is MemberRow & { profiles: ProfileRow } => m.profiles !== null)
         .map((m) => ({
           id: m.profiles.id,
-          name: m.profiles.display_name || m.profiles.email,
+          name: getDisplayName(m.profiles),
         }))
     );
     setExpenses(expenseRows ?? []);

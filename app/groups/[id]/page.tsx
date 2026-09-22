@@ -2,9 +2,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { computeDetailedBalances, computeSettlements } from "@/lib/settlements";
+import { getDisplayName } from "@/lib/displayName";
 import RealtimeGroupListener from "./RealtimeGroupListener";
 import BalancesSection from "./BalancesSection";
 import { createInvite } from "./actions";
+import { SignOutButton } from "@/app/sign-out-button";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -84,7 +86,7 @@ export default async function GroupDetailPage({
 
   const nameById: Record<string, string> = {};
   (members ?? []).forEach((m: any) => {
-    nameById[m.profiles.id] = m.profiles.display_name || m.profiles.email;
+    nameById[m.profiles.id] = getDisplayName(m.profiles);
   });
 
   const net: Record<string, number> = {};
@@ -134,6 +136,12 @@ export default async function GroupDetailPage({
         >
           &larr; Your groups
         </Link>
+        <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+          <span className="font-medium text-black dark:text-zinc-50">
+            {nameById[user.id] ?? getDisplayName({ display_name: null, email: user.email ?? "" })}
+          </span>
+          <SignOutButton small />
+        </div>
       </div>
       <div className="flex w-full max-w-md flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-950">
         {hasLoadError && (
