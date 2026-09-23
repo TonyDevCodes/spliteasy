@@ -7,6 +7,7 @@ import { formatMoney } from "@/lib/money";
 import RealtimeGroupListener from "./RealtimeGroupListener";
 import BalancesSection from "./BalancesSection";
 import CurrencySelector from "./CurrencySelector";
+import ExportMenu from "./ExportMenu";
 import { createInvite } from "./actions";
 import { SignOutButton } from "@/app/sign-out-button";
 
@@ -160,12 +161,28 @@ export default async function GroupDetailPage({
           <h1 className="text-xl font-semibold text-text">
             {group.name}
           </h1>
-          <CurrencySelector
-            key={group.currency}
-            groupId={group.id}
-            currency={group.currency}
-            editable={group.created_by === user.id}
-          />
+          <div className="flex items-start gap-2">
+            <CurrencySelector
+              key={group.currency}
+              groupId={group.id}
+              currency={group.currency}
+              editable={group.created_by === user.id}
+            />
+            <ExportMenu
+              group={{ name: group.name, currency: group.currency }}
+              expenses={expenses ?? []}
+              splits={(splits ?? []).map((s: any) => ({
+                expense_id: s.expense_id,
+                user_id: s.user_id,
+                amount_owed: s.amount_owed,
+              }))}
+              settlements={settlements ?? []}
+              members={(members ?? [])
+                .map((m: any) => m.profiles)
+                .filter((p: any) => p !== null)}
+              currentUserId={user.id}
+            />
+          </div>
         </div>
 
         <div className="flex flex-col gap-1 border-t border-border pt-4">

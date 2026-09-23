@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatMoney, getCurrencySymbol } from '@/lib/money'
 
@@ -10,13 +11,14 @@ type Member = {
 }
 
 type Props = {
+  groupId: string
   members: Member[]
   currentUserId: string
   currency: string
   addExpenseAction: (formData: FormData) => Promise<void>
 }
 
-export default function ExpenseForm({ members, currentUserId, currency, addExpenseAction }: Props) {
+export default function ExpenseForm({ groupId, members, currentUserId, currency, addExpenseAction }: Props) {
   const currencySymbol = getCurrencySymbol(currency)
   const router = useRouter()
   const [description, setDescription] = useState('')
@@ -184,13 +186,21 @@ export default function ExpenseForm({ members, currentUserId, currency, addExpen
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="w-full rounded-md bg-primary px-4 py-2 font-medium text-on-primary hover:bg-primary-hover disabled:bg-disabled disabled:text-on-disabled"
-      >
-        {submitting ? 'Adding...' : 'Add expense'}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="flex-1 rounded-md bg-primary px-4 py-2 font-medium text-on-primary hover:bg-primary-hover disabled:bg-disabled disabled:text-on-disabled"
+        >
+          {submitting ? 'Adding...' : 'Add expense'}
+        </button>
+        <Link
+          href={`/groups/${groupId}`}
+          className="rounded-md border border-border px-4 py-2 font-medium text-text hover:bg-surface-hover"
+        >
+          Cancel
+        </Link>
+      </div>
     </form>
   )
 }

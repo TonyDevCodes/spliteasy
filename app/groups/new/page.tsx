@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from "@/lib/money";
@@ -52,7 +53,12 @@ async function createGroup(formData: FormData) {
 
 export default function NewGroupPage() {
   return (
-    <div className="flex flex-1 items-center justify-center bg-background px-4">
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-background px-4">
+      <div className="flex w-full max-w-md">
+        <Link href="/groups" className="text-sm text-text-muted hover:text-text">
+          &larr; Your groups
+        </Link>
+      </div>
       <form
         action={createGroup}
         className="flex w-full max-w-md flex-col gap-4 rounded-lg border border-border bg-surface p-8"
@@ -84,12 +90,20 @@ export default function NewGroupPage() {
             ))}
           </select>
         </div>
-        <button
-          type="submit"
-          className="rounded-md bg-primary px-4 py-2 font-medium text-on-primary hover:bg-primary-hover"
-        >
-          Create
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            className="flex-1 rounded-md bg-primary px-4 py-2 font-medium text-on-primary hover:bg-primary-hover"
+          >
+            Create
+          </button>
+          <Link
+            href="/groups"
+            className="rounded-md border border-border px-4 py-2 font-medium text-text hover:bg-surface-hover"
+          >
+            Cancel
+          </Link>
+        </div>
       </form>
     </div>
   );

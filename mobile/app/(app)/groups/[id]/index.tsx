@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Modal,
+  Pressable,
   Share,
   StyleSheet,
   Text,
@@ -18,6 +20,14 @@ import {
 import { ErrorBoundary } from "../../../../lib/ErrorBoundary";
 import { getDisplayName } from "../../../../lib/displayName";
 import { subscribeToTableChanges, uniqueChannelName } from "../../../../lib/realtime";
+import {
+  buildBalancesCsv,
+  buildExpensesCsv,
+  buildGroupSummary,
+  computeGroupBalances,
+  exportFileName,
+} from "../../../../lib/export";
+import { shareCsv, sharePdf } from "../../../../lib/exportFiles";
 import { DEFAULT_CURRENCY, formatMoney, SUPPORTED_CURRENCIES } from "../../../../lib/money";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../../../lib/theme";
 
@@ -77,6 +87,14 @@ type Invite = {
 
 type Tab = "balances" | "expenses" | "invite";
 
+type ExportKind = "expenses-csv" | "balances-csv" | "pdf";
+
+const EXPORT_OPTIONS: { kind: ExportKind; label: string }[] = [
+  { kind: "expenses-csv", label: "CSV (expenses)" },
+  { kind: "balances-csv", label: "CSV (balances)" },
+  { kind: "pdf", label: "PDF summary" },
+];
+
 export default function GroupDetailScreen() {
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTheme();
@@ -87,6 +105,7 @@ export default function GroupDetailScreen() {
   const [balanceView, setBalanceView] = useState<"detailed" | "simplified">("detailed");
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
+  const [memberProfiles, setMemberProfiles] = useState<ProfileRow[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [splits, setSplits] = useState<Split[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
@@ -101,6 +120,9 @@ export default function GroupDetailScreen() {
   const [generatingInvite, setGeneratingInvite] = useState(false);
   const [currencyError, setCurrencyError] = useState<string | null>(null);
   const [savingCurrency, setSavingCurrency] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState<ExportKind | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const loadGroupData = useCallback(async (groupId: string) => {
     setLoading(true);
@@ -189,14 +211,11 @@ export default function GroupDetailScreen() {
 
     setLoadWarning(hasLoadError);
 
-    setMembers(
-      (memberRows ?? [])
-        .filter((m): m is MemberRow & { profiles: ProfileRow } => m.profiles !== null)
-        .map((m) => ({
-          id: m.profiles.id,
-          name: getDisplayName(m.profiles),
-        }))
-    );
+    const profiles = (memberRows ?? [])
+      .map((m) => m.profiles)
+      .filter((p): p is ProfileRow => p !== null);
+    setMemberProfiles(profiles);
+    setMembers(profiles.map((p) => ({ id: p.id, name: getDisplayName(p) })));
     setExpenses(expenseRows ?? []);
     setSplits(splitRows ?? []);
     setSettlements(settlementRows ?? []);
@@ -324,6 +343,39 @@ export default function GroupDetailScreen() {
     setGroup({ ...group, currency: nextCurrency });
   }
 
+  function openExport() {
+    setExportError(null);
+    setExportOpen(true);
+  }
+
+  async function handleExport(kind: ExportKind) {
+    if (!group) return;
+    setExporting(kind);
+    setExportError(null);
+
+    try {
+      const exportGroup = { name: group.name, currency: group.currency };
+      const balances = computeGroupBalances(expenses, splits, settlements);
+
+      if (kind === "pdf") {
+        const summary = buildGroupSummary(exportGroup, expenses, memberProfiles, balances, currentUserId);
+        await sharePdf(summary, exportFileName(group.name, "pdf"));
+      } else {
+        const csv =
+          kind === "expenses-csv"
+            ? buildExpensesCsv(exportGroup, expenses, memberProfiles, splits)
+            : buildBalancesCsv(exportGroup, balances, memberProfiles);
+        await shareCsv(csv, exportFileName(group.name, "csv"));
+      }
+      setExportOpen(false);
+    } catch (exportErr) {
+      console.error("Export error:", exportErr);
+      setExportError("Export failed. Please try again.");
+    } finally {
+      setExporting(null);
+    }
+  }
+
   async function handleGenerateInvite() {
     if (!id || !currentUserId) return;
     setGeneratingInvite(true);
@@ -370,17 +422,57 @@ export default function GroupDetailScreen() {
       <Stack.Screen
         options={{
           title: group?.name ?? "Group",
-          headerRight: () =>
-            tab === "expenses" ? (
-              <TouchableOpacity
-                onPress={() => router.push(`/(app)/groups/${id}/expenses/new`)}
-                style={styles.headerButton}
-              >
-                <Text style={styles.headerButtonText}>+ Add expense</Text>
-              </TouchableOpacity>
-            ) : null,
+          headerRight: () => (
+            <View style={styles.headerRightRow}>
+              {group && (
+                <TouchableOpacity onPress={openExport} style={styles.headerButton}>
+                  <Text style={styles.headerButtonText}>Export</Text>
+                </TouchableOpacity>
+              )}
+              {tab === "expenses" && (
+                <TouchableOpacity
+                  onPress={() => router.push(`/(app)/groups/${id}/expenses/new`)}
+                  style={styles.headerButton}
+                >
+                  <Text style={styles.headerButtonText}>+ Add expense</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ),
         }}
       />
+
+      <Modal
+        visible={exportOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !exporting && setExportOpen(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => !exporting && setExportOpen(false)}>
+          <Pressable style={styles.modalSheet}>
+            <Text style={styles.sectionTitle}>Export {group?.name}</Text>
+            {EXPORT_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.kind}
+                style={styles.exportOption}
+                onPress={() => handleExport(option.kind)}
+                disabled={exporting !== null}
+              >
+                <Text style={styles.exportOptionText}>{option.label}</Text>
+                {exporting === option.kind && <ActivityIndicator size="small" color={colors.text} />}
+              </TouchableOpacity>
+            ))}
+            {exportError && <Text style={styles.error}>{exportError}</Text>}
+            <TouchableOpacity
+              style={styles.exportCancel}
+              onPress={() => setExportOpen(false)}
+              disabled={exporting !== null}
+            >
+              <Text style={styles.exportCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {loading ? (
         <View style={styles.centered}>
@@ -801,6 +893,47 @@ const makeStyles = (c: ThemeColors) =>
       fontSize: 14,
       color: c.text,
       paddingVertical: 4,
+    },
+    headerRightRow: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    modalOverlay: {
+      flex: 1,
+      justifyContent: "flex-end",
+      backgroundColor: c.overlay,
+    },
+    modalSheet: {
+      backgroundColor: c.surface,
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: 16,
+      padding: 20,
+      paddingBottom: 32,
+    },
+    exportOption: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: c.border,
+    },
+    exportOptionText: {
+      fontSize: 16,
+      color: c.text,
+    },
+    exportCancel: {
+      marginTop: 16,
+      paddingVertical: 12,
+      alignItems: "center",
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    exportCancelText: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: c.text,
     },
     headerButton: {
       paddingHorizontal: 8,

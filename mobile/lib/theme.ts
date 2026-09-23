@@ -39,6 +39,7 @@ export const themeColors = {
     link: "#2563eb",
     inputBackground: "#ffffff",
     placeholder: "#71717a",
+    overlay: "#00000066",
   },
   dark: {
     background: "#09090b",
@@ -58,6 +59,7 @@ export const themeColors = {
     link: "#60a5fa",
     inputBackground: "#27272a",
     placeholder: "#a1a1aa",
+    overlay: "#000000b3",
   },
 } as const;
 

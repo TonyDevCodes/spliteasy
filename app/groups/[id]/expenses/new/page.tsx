@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { getDisplayName } from '@/lib/displayName'
@@ -100,10 +101,17 @@ export default async function NewExpensePage({
 
   return (
     <div className="max-w-lg mx-auto p-6">
+      <Link
+        href={`/groups/${groupId}`}
+        className="mb-4 inline-block text-sm text-text-muted hover:text-text"
+      >
+        &larr; Back to group
+      </Link>
       <h1 className="text-xl font-semibold mb-4">
         Add expense — {group.name}
       </h1>
       <ExpenseForm
+        groupId={groupId}
         members={formattedMembers}
         currentUserId={user.id}
         currency={group.currency}

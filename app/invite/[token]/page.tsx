@@ -55,20 +55,26 @@ export default async function InvitePage({
 
   if (error || !invite) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-background px-4">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-background px-4">
         <p className="text-danger">
           This invite link is invalid.
         </p>
+        <Link href="/groups" className="text-sm text-text-muted hover:text-text">
+          &larr; Your groups
+        </Link>
       </div>
     );
   }
 
   if (invite.is_expired) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-background px-4">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-background px-4">
         <p className="text-danger">
           This invite link has expired.
         </p>
+        <Link href="/groups" className="text-sm text-text-muted hover:text-text">
+          &larr; Your groups
+        </Link>
       </div>
     );
   }
