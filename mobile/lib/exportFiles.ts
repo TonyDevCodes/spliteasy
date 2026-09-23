@@ -44,10 +44,10 @@ function escapeHtml(value: string): string {
 export function summaryToHtml(summary: GroupSummary): string {
   const c = themeColors.light;
   const list = (items: string[]) => items.map((item) => `<p>${escapeHtml(item)}</p>`).join("");
-  const head = summary.expenseColumns.map((col) => `<th>${escapeHtml(col)}</th>`).join("");
-  const rows = summary.expenseRows
-    .map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`)
-    .join("");
+  const table = (columns: string[], rows: string[][]) =>
+    `<table><thead><tr>${columns.map((col) => `<th>${escapeHtml(col)}</th>`).join("")}</tr></thead><tbody>${rows
+      .map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`)
+      .join("")}</tbody></table>`;
 
   return `<!DOCTYPE html>
 <html>
@@ -59,7 +59,8 @@ export function summaryToHtml(summary: GroupSummary): string {
   h1 { font-size: 22px; margin: 0 0 4px; }
   h2 { font-size: 14px; margin: 18px 0 6px; }
   p { margin: 2px 0; }
-  .meta { color: ${c.textMuted}; }
+  .meta, .note { color: ${c.textMuted}; }
+  .note { font-size: 11px; margin-top: 6px; }
   table { width: 100%; border-collapse: collapse; margin-top: 4px; }
   th { background: ${c.primary}; color: ${c.onPrimary}; text-align: left; padding: 6px; }
   td { padding: 6px; border-bottom: 1px solid ${c.border}; }
@@ -77,7 +78,10 @@ export function summaryToHtml(summary: GroupSummary): string {
   <h2>All balances (Simplified)</h2>
   ${list(summary.simplified)}
   <h2>Expenses</h2>
-  <table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>
+  ${table(summary.expenseColumns, summary.expenseRows)}
+  <p class="note">${escapeHtml(summary.reconciliationNote)}</p>
+  <h2>Settlements</h2>
+  ${table(summary.settlementColumns, summary.settlementRows)}
 </body>
 </html>`;
 }

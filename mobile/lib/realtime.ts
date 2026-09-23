@@ -13,19 +13,21 @@ export function uniqueChannelName(base: string): string {
  * Subscribes to postgres_changes on the given tables under one channel.
  * All .on() handlers are registered before .subscribe(), and the channel
  * name is expected to be unique per mount (see uniqueChannelName).
+ * An optional filter (e.g. "user_id=eq.<id>") limits the rows listened to.
  */
 export function subscribeToTableChanges(
   supabase: SupabaseClient,
   channelName: string,
   tables: string[],
-  onChange: () => void
+  onChange: () => void,
+  filter?: string
 ) {
   let channel = supabase.channel(channelName);
 
   tables.forEach((table) => {
     channel = channel.on(
       "postgres_changes",
-      { event: "*", schema: "public", table },
+      { event: "*", schema: "public", table, ...(filter ? { filter } : {}) },
       onChange
     );
   });

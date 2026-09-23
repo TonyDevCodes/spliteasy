@@ -104,5 +104,23 @@ export async function buildSummaryPdf(summary: GroupSummary): Promise<Blob> {
     columnStyles: { 3: { halign: "right" } },
   });
 
+  y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5;
+  doc.setFont(FONT_NAME, "normal").setFontSize(9).setTextColor(LIGHT.textMuted);
+  ensureSpace(6);
+  doc.text(summary.reconciliationNote, PAGE_MARGIN, y);
+  y += 3;
+
+  heading("Settlements");
+  autoTable(doc, {
+    startY: y,
+    margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
+    head: [summary.settlementColumns],
+    body: summary.settlementRows,
+    styles: { font: FONT_NAME, fontSize: 9, textColor: LIGHT.text },
+    headStyles: { fontStyle: "bold", fillColor: LIGHT.primary, textColor: LIGHT.onPrimary },
+    alternateRowStyles: { fillColor: LIGHT.surfaceHover },
+    columnStyles: { 3: { halign: "right" } },
+  });
+
   return doc.output("blob");
 }

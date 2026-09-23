@@ -77,6 +77,7 @@ type Settlement = {
   from_user: string;
   to_user: string;
   amount: number;
+  settled_at: string;
 };
 
 type Invite = {
@@ -183,7 +184,7 @@ export default function GroupDetailScreen() {
         .returns<Split[]>(),
       supabase
         .from("settlements")
-        .select("from_user, to_user, amount")
+        .select("from_user, to_user, amount, settled_at")
         .eq("group_id", groupId)
         .returns<Settlement[]>(),
       supabase
@@ -358,13 +359,13 @@ export default function GroupDetailScreen() {
       const balances = computeGroupBalances(expenses, splits, settlements);
 
       if (kind === "pdf") {
-        const summary = buildGroupSummary(exportGroup, expenses, memberProfiles, balances, currentUserId);
+        const summary = buildGroupSummary(exportGroup, expenses, settlements, memberProfiles, balances, currentUserId);
         await sharePdf(summary, exportFileName(group.name, "pdf"));
       } else {
         const csv =
           kind === "expenses-csv"
             ? buildExpensesCsv(exportGroup, expenses, memberProfiles, splits)
-            : buildBalancesCsv(exportGroup, balances, memberProfiles);
+            : buildBalancesCsv(exportGroup, balances, memberProfiles, settlements);
         await shareCsv(csv, exportFileName(group.name, "csv"));
       }
       setExportOpen(false);

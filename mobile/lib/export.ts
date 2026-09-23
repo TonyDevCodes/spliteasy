@@ -33,6 +33,8 @@ export type ExportSettlement = {
   from_user: string;
   to_user: string;
   amount: number | string;
+  /** When the settlement was recorded; shown as the settlement's date. */
+  settled_at?: string | null;
 };
 
 export type GroupBalances = {
@@ -49,13 +51,18 @@ export type GroupSummary = {
   simplified: string[];
   expenseColumns: string[];
   expenseRows: string[][];
+  reconciliationNote: string;
+  settlementColumns: string[];
+  settlementRows: string[][];
 };
 
 /** Byte order mark so Excel opens the file as UTF-8 (€, accented names). */
-export const CSV_BOM = "﻿";
+export const CSV_BOM = "\uFEFF";
 const CSV_LINE_BREAK = "\r\n";
 export const NO_EXPENSES_TEXT = "No expenses";
 export const SETTLED_UP_TEXT = "All settled up";
+export const NO_SETTLEMENTS_TEXT = "No settlements";
+export const RECONCILIATION_NOTE = "Balances = expenses minus settlements";
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
@@ -89,16 +96,22 @@ function toDateString(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-/** The calendar day an expense was created on, in the viewer's time zone. */
-function expenseDate(createdAt: string): string {
-  const date = new Date(createdAt);
-  return Number.isNaN(date.getTime()) ? createdAt.slice(0, 10) : toDateString(date);
+/** The calendar day of a timestamp, in the viewer's time zone. */
+function localDay(timestamp: string | null | undefined): string {
+  if (!timestamp) return "";
+  const date = new Date(timestamp);
+  return Number.isNaN(date.getTime()) ? timestamp.slice(0, 10) : toDateString(date);
+}
+
+/** Newest first, matching how the apps list expenses. */
+function newestSettlementsFirst(settlements: ExportSettlement[]): ExportSettlement[] {
+  return [...settlements].sort((a, b) => (b.settled_at ?? "").localeCompare(a.settled_at ?? ""));
 }
 
 export function slugify(name: string): string {
   const slug = name
     .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
@@ -167,7 +180,7 @@ export function buildExpensesCsv(
   });
 
   const rows = expenses.map((e) => [
-    expenseDate(e.created_at),
+    localDay(e.created_at),
     escapeCsvText(e.description),
     formatCsvAmount(Number(e.amount)),
     group.currency,
@@ -178,11 +191,15 @@ export function buildExpensesCsv(
   return toCsv([header.map(escapeCsvText), ...rows]);
 }
 
-/** Current balances: every Detailed line, then the Simplified settlements. */
+/**
+ * Current balances: every Detailed line, then the Simplified settlements,
+ * then the settlements already recorded (Date, From, To, Amount, Currency).
+ */
 export function buildBalancesCsv(
   group: ExportGroup,
   balances: GroupBalances,
-  members: ExportMember[]
+  members: ExportMember[],
+  settlements: ExportSettlement[]
 ): string {
   const nameOf = nameLookup(members);
   const section = (label: string, lines: BalanceLine[]) =>
@@ -196,10 +213,22 @@ export function buildBalancesCsv(
           group.currency,
         ]);
 
+  const recorded = newestSettlementsFirst(settlements).map((st) => [
+    localDay(st.settled_at),
+    escapeCsvText(nameOf(st.from_user)),
+    escapeCsvText(nameOf(st.to_user)),
+    formatCsvAmount(Number(st.amount)),
+    group.currency,
+  ]);
+
   return toCsv([
     ["Type", "From", "To", "Amount", "Currency"],
     ...section("Detailed", balances.detailed),
     ...section("Simplified", balances.simplified),
+    [],
+    ["Settlements"],
+    ["Date", "From", "To", "Amount", "Currency"],
+    ...(recorded.length ? recorded : [[escapeCsvText(NO_SETTLEMENTS_TEXT)]]),
   ]);
 }
 
@@ -207,6 +236,7 @@ export function buildBalancesCsv(
 export function buildGroupSummary(
   group: ExportGroup,
   expenses: ExportExpense[],
+  settlements: ExportSettlement[],
   members: ExportMember[],
   balances: GroupBalances,
   currentUserId: string | null,
@@ -242,7 +272,17 @@ export function buildGroupSummary(
     simplified: balances.simplified.length ? balances.simplified.map(describe) : [SETTLED_UP_TEXT],
     expenseColumns: ["Date", "Description", "Paid by", "Amount"],
     expenseRows: expenses.length
-      ? expenses.map((e) => [expenseDate(e.created_at), e.description, nameOf(e.paid_by), money(Number(e.amount))])
+      ? expenses.map((e) => [localDay(e.created_at), e.description, nameOf(e.paid_by), money(Number(e.amount))])
       : [[NO_EXPENSES_TEXT, "", "", ""]],
+    reconciliationNote: RECONCILIATION_NOTE,
+    settlementColumns: ["Date", "From", "To", "Amount"],
+    settlementRows: settlements.length
+      ? newestSettlementsFirst(settlements).map((st) => [
+          localDay(st.settled_at),
+          nameOf(st.from_user),
+          nameOf(st.to_user),
+          money(Number(st.amount)),
+        ])
+      : [[NO_SETTLEMENTS_TEXT, "", "", ""]],
   };
 }

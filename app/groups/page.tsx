@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getDisplayName } from "@/lib/displayName";
 import { SignOutButton } from "@/app/sign-out-button";
+import { NotificationBell } from "@/app/notification-bell";
 
 type GroupRow = {
   id: string;
@@ -66,7 +67,10 @@ export default async function GroupsPage() {
             {myName}
           </Link>
         </span>
-        <SignOutButton small />
+        <div className="flex items-center gap-2">
+          <NotificationBell userId={user.id} />
+          <SignOutButton small />
+        </div>
       </div>
 
       <div className="flex w-full max-w-md items-center justify-between">

@@ -8,8 +8,12 @@ import {
   View,
 } from "react-native";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { supabase } from "../../lib/supabase";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../lib/theme";
+import { useAuth } from "../../lib/auth-context";
+import { formatBadgeCount } from "../../lib/notifications";
+import { useUnreadNotifications } from "../../lib/useUnreadNotifications";
 
 type GroupRow = {
   id: string;
@@ -27,6 +31,8 @@ export default function GroupsScreen() {
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTheme();
   const router = useRouter();
+  const { user } = useAuth();
+  const unreadBadge = formatBadgeCount(useUnreadNotifications(user?.id));
 
   const [groups, setGroups] = useState<GroupWithMemberCount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,6 +112,19 @@ export default function GroupsScreen() {
           title: "Your groups",
           headerRight: () => (
             <View style={styles.headerRightRow}>
+              <TouchableOpacity
+                onPress={() => router.push("/(app)/notifications")}
+                style={styles.headerButton}
+                accessibilityRole="button"
+                accessibilityLabel={unreadBadge ? `Notifications, ${unreadBadge} unread` : "Notifications"}
+              >
+                <Ionicons name="notifications-outline" size={22} color={colors.text} />
+                {unreadBadge && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{unreadBadge}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => router.push("/(app)/profile")}
                 style={styles.headerButton}
@@ -221,6 +240,23 @@ const makeStyles = (c: ThemeColors) =>
       color: c.onPrimary,
       fontSize: 16,
       fontWeight: "600",
+    },
+    badge: {
+      position: "absolute",
+      top: -2,
+      right: 0,
+      minWidth: 18,
+      height: 18,
+      borderRadius: 9,
+      paddingHorizontal: 4,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.danger,
+    },
+    badgeText: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: c.surface,
     },
     headerRightRow: {
       flexDirection: "row",

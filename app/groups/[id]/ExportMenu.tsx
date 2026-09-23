@@ -57,13 +57,13 @@ export default function ExportMenu({ group, expenses, splits, settlements, membe
 
       if (kind === "pdf") {
         const { buildSummaryPdf } = await import("@/lib/exportPdf");
-        const summary = buildGroupSummary(group, expenses, members, balances, currentUserId);
+        const summary = buildGroupSummary(group, expenses, settlements, members, balances, currentUserId);
         download(await buildSummaryPdf(summary), exportFileName(group.name, "pdf"));
       } else {
         const csv =
           kind === "expenses-csv"
             ? buildExpensesCsv(group, expenses, members, splits)
-            : buildBalancesCsv(group, balances, members);
+            : buildBalancesCsv(group, balances, members, settlements);
         download(new Blob([csv], { type: "text/csv;charset=utf-8" }), exportFileName(group.name, "csv"));
       }
     } catch (err) {

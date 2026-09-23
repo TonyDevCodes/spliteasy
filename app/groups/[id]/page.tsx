@@ -10,6 +10,7 @@ import CurrencySelector from "./CurrencySelector";
 import ExportMenu from "./ExportMenu";
 import { createInvite } from "./actions";
 import { SignOutButton } from "@/app/sign-out-button";
+import { NotificationBell } from "@/app/notification-bell";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -65,7 +66,7 @@ export default async function GroupDetailPage({
 
   const { data: settlements, error: settlementsError } = await supabase
     .from("settlements")
-    .select("from_user, to_user, amount")
+    .select("from_user, to_user, amount, settled_at")
     .eq("group_id", id);
 
   const { data: members, error: membersError } = await supabase
@@ -140,6 +141,7 @@ export default async function GroupDetailPage({
           &larr; Your groups
         </Link>
         <div className="flex items-center gap-2 text-sm text-text-muted">
+          <NotificationBell userId={user.id} />
           <Link
             href="/profile"
             className="font-medium text-text hover:underline"
