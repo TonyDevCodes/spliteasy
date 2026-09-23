@@ -15,6 +15,7 @@ import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../../../../../lib/supabase";
 import { getDisplayName } from "../../../../../lib/displayName";
 import { DEFAULT_CURRENCY, formatMoney, getCurrencySymbol } from "../../../../../lib/money";
+import { useTheme, useThemedStyles, type ThemeColors } from "../../../../../lib/theme";
 
 const RECEIPTS_BUCKET = "receipts";
 
@@ -37,6 +38,8 @@ type Member = {
 type SplitMode = "equally" | "custom";
 
 export default function NewExpenseScreen() {
+  const styles = useThemedStyles(makeStyles);
+  const { colors } = useTheme();
   const { id: groupId } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -285,7 +288,7 @@ export default function NewExpenseScreen() {
     return (
       <View style={styles.centered}>
         <Stack.Screen options={{ title: "Add expense" }} />
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
@@ -307,6 +310,7 @@ export default function NewExpenseScreen() {
 
       <Text style={styles.label}>Description</Text>
       <TextInput
+        placeholderTextColor={colors.placeholder}
         style={styles.input}
         value={description}
         onChangeText={setDescription}
@@ -315,6 +319,7 @@ export default function NewExpenseScreen() {
 
       <Text style={styles.label}>Total amount ({currencySymbol})</Text>
       <TextInput
+        placeholderTextColor={colors.placeholder}
         style={styles.input}
         value={amount}
         onChangeText={setAmount}
@@ -363,6 +368,7 @@ export default function NewExpenseScreen() {
             <View key={m.id} style={styles.customSplitRow}>
               <Text style={styles.customSplitName}>{m.name}</Text>
               <TextInput
+                placeholderTextColor={colors.placeholder}
                 style={styles.customSplitInput}
                 value={customSplits[m.id] || ""}
                 onChangeText={(text) =>
@@ -407,7 +413,7 @@ export default function NewExpenseScreen() {
 
       <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={submitting}>
         {submitting ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.onPrimary} />
         ) : (
           <Text style={styles.buttonText}>Add expense</Text>
         )}
@@ -416,107 +422,112 @@ export default function NewExpenseScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    padding: 24,
-    backgroundColor: "#fff",
-  },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-    backgroundColor: "#fff",
-  },
-  label: {
-    fontSize: 14,
-    color: "#444",
-    marginBottom: 4,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 16,
-    fontSize: 16,
-  },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 16,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-  },
-  chipActive: {
-    backgroundColor: "#111",
-    borderColor: "#111",
-  },
-  chipText: {
-    fontSize: 14,
-    color: "#333",
-  },
-  chipTextActive: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  customSplits: {
-    marginBottom: 16,
-  },
-  customSplitRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  customSplitName: {
-    flex: 1,
-    fontSize: 14,
-    color: "#333",
-  },
-  customSplitInput: {
-    width: 100,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 14,
-  },
-  mutedText: {
-    fontSize: 13,
-    color: "#666",
-  },
-  photoPreviewRow: {
-    marginBottom: 16,
-  },
-  photoThumbnail: {
-    width: 120,
-    height: 120,
-    borderRadius: 8,
-    marginBottom: 8,
-    backgroundColor: "#eee",
-  },
-  error: {
-    color: "#c00",
-    marginBottom: 12,
-  },
-  button: {
-    backgroundColor: "#111",
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      padding: 24,
+      backgroundColor: c.background,
+    },
+    centered: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24,
+      backgroundColor: c.background,
+    },
+    label: {
+      fontSize: 14,
+      color: c.textMuted,
+      marginBottom: 4,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      marginBottom: 16,
+      fontSize: 16,
+      color: c.text,
+      backgroundColor: c.inputBackground,
+    },
+    chipRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginBottom: 16,
+    },
+    chip: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 20,
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+    },
+    chipActive: {
+      backgroundColor: c.primary,
+      borderColor: c.primary,
+    },
+    chipText: {
+      fontSize: 14,
+      color: c.text,
+    },
+    chipTextActive: {
+      color: c.onPrimary,
+      fontWeight: "600",
+    },
+    customSplits: {
+      marginBottom: 16,
+    },
+    customSplitRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 8,
+    },
+    customSplitName: {
+      flex: 1,
+      fontSize: 14,
+      color: c.text,
+    },
+    customSplitInput: {
+      width: 100,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      fontSize: 14,
+      color: c.text,
+      backgroundColor: c.inputBackground,
+    },
+    mutedText: {
+      fontSize: 13,
+      color: c.textMuted,
+    },
+    photoPreviewRow: {
+      marginBottom: 16,
+    },
+    photoThumbnail: {
+      width: 120,
+      height: 120,
+      borderRadius: 8,
+      marginBottom: 8,
+      backgroundColor: c.surfaceHover,
+    },
+    error: {
+      color: c.danger,
+      marginBottom: 12,
+    },
+    button: {
+      backgroundColor: c.primary,
+      borderRadius: 8,
+      paddingVertical: 14,
+      alignItems: "center",
+      marginTop: 8,
+    },
+    buttonText: {
+      color: c.onPrimary,
+      fontSize: 16,
+      fontWeight: "600",
+    },
+  });

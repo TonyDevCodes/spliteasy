@@ -102,16 +102,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-zinc-50 dark:bg-black">
-      <div className="w-full max-w-sm rounded-lg border border-black/[.08] bg-white p-6 dark:border-white/[.145] dark:bg-zinc-950">
-        <h1 className="mb-6 text-xl font-semibold text-black dark:text-zinc-50">
+    <div className="flex flex-1 items-center justify-center bg-background">
+      <div className="w-full max-w-sm rounded-lg border border-border bg-surface p-6">
+        <h1 className="mb-6 text-xl font-semibold text-text">
           {mode === "sign-in" ? "Sign in" : "Sign up"}
         </h1>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {mode === "sign-up" && (
             <div className="flex flex-col gap-1">
-              <label htmlFor="name" className="text-sm text-zinc-600 dark:text-zinc-400">
+              <label htmlFor="name" className="text-sm text-text-muted">
                 Name (optional)
               </label>
               <input
@@ -119,13 +119,13 @@ export default function LoginPage() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-black outline-none focus:border-black/30 dark:border-white/[.145] dark:text-zinc-50 dark:focus:border-white/30"
+                className="rounded border border-border bg-input-background px-3 py-2 text-text outline-none focus:border-text-muted"
               />
             </div>
           )}
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="email" className="text-sm text-zinc-600 dark:text-zinc-400">
+            <label htmlFor="email" className="text-sm text-text-muted">
               Email
             </label>
             <input
@@ -134,12 +134,12 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-black outline-none focus:border-black/30 dark:border-white/[.145] dark:text-zinc-50 dark:focus:border-white/30"
+              className="rounded border border-border bg-input-background px-3 py-2 text-text outline-none focus:border-text-muted"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="password" className="text-sm text-zinc-600 dark:text-zinc-400">
+            <label htmlFor="password" className="text-sm text-text-muted">
               Password
             </label>
             <input
@@ -149,17 +149,17 @@ export default function LoginPage() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-black outline-none focus:border-black/30 dark:border-white/[.145] dark:text-zinc-50 dark:focus:border-white/30"
+              className="rounded border border-border bg-input-background px-3 py-2 text-text outline-none focus:border-text-muted"
             />
           </div>
 
-          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-          {message && <p className="text-sm text-green-600 dark:text-green-400">{message}</p>}
+          {error && <p className="text-sm text-danger">{error}</p>}
+          {message && <p className="text-sm text-success">{message}</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
+            className="rounded-full bg-primary px-5 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:bg-disabled disabled:text-on-disabled"
           >
             {mode === "sign-in" ? "Sign in" : "Sign up"}
           </button>
@@ -169,12 +169,12 @@ export default function LoginPage() {
           type="button"
           onClick={handleMagicLink}
           disabled={loading}
-          className="mt-3 w-full rounded-full border border-black/[.08] px-5 py-2 text-sm font-medium text-black transition-colors hover:bg-black/[.04] disabled:opacity-50 dark:border-white/[.145] dark:text-zinc-50 dark:hover:bg-[#1a1a1a]"
+          className="mt-3 w-full rounded-full border border-border px-5 py-2 text-sm font-medium text-text transition-colors hover:bg-surface-hover disabled:bg-disabled disabled:text-on-disabled"
         >
           Send magic link
         </button>
 
-        <p className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="mt-6 text-center text-sm text-text-muted">
           {mode === "sign-in" ? "Don't have an account?" : "Already have an account?"}{" "}
           <button
             type="button"
@@ -183,7 +183,7 @@ export default function LoginPage() {
               setError(null);
               setMessage(null);
             }}
-            className="font-medium text-black underline dark:text-zinc-50"
+            className="font-medium text-text underline"
           >
             {mode === "sign-in" ? "Sign up" : "Sign in"}
           </button>

@@ -19,7 +19,7 @@ export default function CurrencySelector({
 
   if (!editable) {
     return (
-      <span className="text-sm text-zinc-600 dark:text-zinc-400">{value}</span>
+      <span className="text-sm text-text-muted">{value}</span>
     );
   }
 
@@ -49,7 +49,7 @@ export default function CurrencySelector({
         value={value}
         onChange={handleChange}
         disabled={saving}
-        className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm text-black disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+        className="rounded-md border border-border bg-input-background px-2 py-1 text-sm text-text disabled:bg-disabled disabled:text-on-disabled"
       >
         {SUPPORTED_CURRENCIES.map((c) => (
           <option key={c} value={c}>
@@ -58,7 +58,7 @@ export default function CurrencySelector({
         ))}
       </select>
       {error && (
-        <span className="text-xs text-red-600 dark:text-red-400">{error}</span>
+        <span className="text-xs text-danger">{error}</span>
       )}
     </div>
   );

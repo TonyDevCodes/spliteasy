@@ -26,12 +26,12 @@ export default function BalancesSection({
   const lines = view === "detailed" ? detailedLines : simplifiedLines;
 
   return (
-    <div className="flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-      <h2 className="text-sm font-semibold text-black dark:text-zinc-50">
+    <div className="flex flex-col gap-2 border-t border-border pt-4">
+      <h2 className="text-sm font-semibold text-text">
         All balances in this group
       </h2>
       {!hasExpenses ? (
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="text-sm text-text-muted">
           No expenses yet.
         </p>
       ) : (
@@ -42,8 +42,8 @@ export default function BalancesSection({
               onClick={() => setView("detailed")}
               className={`px-3 py-1.5 rounded-md text-sm ${
                 view === "detailed"
-                  ? "bg-black text-white"
-                  : "bg-zinc-100 text-black"
+                  ? "bg-primary text-on-primary"
+                  : "bg-surface-hover text-text"
               }`}
             >
               Detailed
@@ -53,8 +53,8 @@ export default function BalancesSection({
               onClick={() => setView("simplified")}
               className={`px-3 py-1.5 rounded-md text-sm ${
                 view === "simplified"
-                  ? "bg-black text-white"
-                  : "bg-zinc-100 text-black"
+                  ? "bg-primary text-on-primary"
+                  : "bg-surface-hover text-text"
               }`}
             >
               Simplified
@@ -62,7 +62,7 @@ export default function BalancesSection({
           </div>
 
           {lines.length === 0 ? (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm text-text-muted">
               All settled up!
             </p>
           ) : (
@@ -72,7 +72,7 @@ export default function BalancesSection({
                   key={idx}
                   className="flex items-center justify-between gap-2 text-sm"
                 >
-                  <span className="text-zinc-700 dark:text-zinc-300">
+                  <span className="text-text">
                     {nameById[line.from] ?? "Someone"} owes{" "}
                     {nameById[line.to] ?? "someone"}:{" "}
                     {formatMoney(line.amount, currency)}
@@ -88,7 +88,7 @@ export default function BalancesSection({
                     />
                     <button
                       type="submit"
-                      className="whitespace-nowrap rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      className="whitespace-nowrap rounded-md border border-border px-2 py-1 text-xs font-medium text-text hover:bg-surface-hover"
                     >
                       Mark as settled
                     </button>

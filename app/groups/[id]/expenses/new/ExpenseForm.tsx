@@ -86,7 +86,7 @@ export default function ExpenseForm({ members, currentUserId, currency, addExpen
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="p-3 rounded-md bg-red-50 text-red-700 text-sm">
+        <div className="p-3 rounded-md bg-danger-background text-danger text-sm">
           {error}
         </div>
       )}
@@ -97,7 +97,7 @@ export default function ExpenseForm({ members, currentUserId, currency, addExpen
           type="text"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full rounded-md border bg-white px-3 py-2 text-black"
+          className="w-full rounded-md border border-border bg-input-background px-3 py-2 text-text"
           placeholder="e.g. Dinner"
         />
       </div>
@@ -112,7 +112,7 @@ export default function ExpenseForm({ members, currentUserId, currency, addExpen
           min="0"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="w-full rounded-md border bg-white px-3 py-2 text-black"
+          className="w-full rounded-md border border-border bg-input-background px-3 py-2 text-text"
           placeholder="0.00"
         />
       </div>
@@ -122,7 +122,7 @@ export default function ExpenseForm({ members, currentUserId, currency, addExpen
         <select
           value={paidBy}
           onChange={(e) => setPaidBy(e.target.value)}
-          className="w-full rounded-md border bg-white px-3 py-2 text-black"
+          className="w-full rounded-md border border-border bg-input-background px-3 py-2 text-text"
         >
           {members.map((m) => (
             <option key={m.id} value={m.id}>
@@ -140,8 +140,8 @@ export default function ExpenseForm({ members, currentUserId, currency, addExpen
             onClick={() => setSplitMode('equally')}
             className={`px-3 py-1.5 rounded-md text-sm ${
               splitMode === 'equally'
-                ? 'bg-black text-white'
-                : 'bg-zinc-100 text-black'
+                ? 'bg-primary text-on-primary'
+                : 'bg-surface-hover text-text'
             }`}
           >
             Equally
@@ -151,8 +151,8 @@ export default function ExpenseForm({ members, currentUserId, currency, addExpen
             onClick={() => setSplitMode('custom')}
             className={`px-3 py-1.5 rounded-md text-sm ${
               splitMode === 'custom'
-                ? 'bg-black text-white'
-                : 'bg-zinc-100 text-black'
+                ? 'bg-primary text-on-primary'
+                : 'bg-surface-hover text-text'
             }`}
           >
             Custom
@@ -173,12 +173,12 @@ export default function ExpenseForm({ members, currentUserId, currency, addExpen
                 onChange={(e) =>
                   setCustomSplits((prev) => ({ ...prev, [m.id]: e.target.value }))
                 }
-                className="w-28 rounded-md border bg-white px-2 py-1 text-black"
+                className="w-28 rounded-md border border-border bg-input-background px-2 py-1 text-text"
                 placeholder={`${currencySymbol}0.00`}
               />
             </div>
           ))}
-          <p className={`text-sm ${splitMismatch ? 'text-red-600' : 'text-zinc-500'}`}>
+          <p className={`text-sm ${splitMismatch ? 'text-danger' : 'text-text-muted'}`}>
             Total: {formatMoney(splitTotal / 100, currency)} / {formatMoney(amountCents / 100, currency)}
           </p>
         </div>
@@ -187,7 +187,7 @@ export default function ExpenseForm({ members, currentUserId, currency, addExpen
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-md bg-black px-4 py-2 font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+        className="w-full rounded-md bg-primary px-4 py-2 font-medium text-on-primary hover:bg-primary-hover disabled:bg-disabled disabled:text-on-disabled"
       >
         {submitting ? 'Adding...' : 'Add expense'}
       </button>

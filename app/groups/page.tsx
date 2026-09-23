@@ -42,8 +42,8 @@ export default async function GroupsPage() {
   if (error) {
     console.error("Groups query error:", error);
     return (
-      <div className="flex flex-1 items-center justify-center bg-zinc-50 dark:bg-black">
-        <p className="text-red-600 dark:text-red-400">
+      <div className="flex flex-1 items-center justify-center bg-background">
+        <p className="text-danger">
           Something went wrong loading your groups.
         </p>
       </div>
@@ -55,13 +55,13 @@ export default async function GroupsPage() {
     .filter((g): g is GroupRow => g !== null);
 
   return (
-    <div className="flex flex-1 flex-col items-center gap-6 bg-zinc-50 px-4 py-12 dark:bg-black">
-      <div className="flex w-full max-w-md items-center justify-between text-sm text-zinc-600 dark:text-zinc-400">
+    <div className="flex flex-1 flex-col items-center gap-6 bg-background px-4 py-12">
+      <div className="flex w-full max-w-md items-center justify-between text-sm text-text-muted">
         <span>
           Signed in as{" "}
           <Link
             href="/profile"
-            className="font-medium text-black hover:underline dark:text-zinc-50"
+            className="font-medium text-text hover:underline"
           >
             {myName}
           </Link>
@@ -70,20 +70,20 @@ export default async function GroupsPage() {
       </div>
 
       <div className="flex w-full max-w-md items-center justify-between">
-        <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
+        <h1 className="text-xl font-semibold text-text">
           Your groups
         </h1>
         <Link
           href="/groups/new"
-          className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+          className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-on-primary hover:bg-primary-hover"
         >
           Create group
         </Link>
       </div>
 
       {groups.length === 0 ? (
-        <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-lg border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-950">
-          <p className="text-zinc-600 dark:text-zinc-400">
+        <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-lg border border-border bg-surface p-8 text-center">
+          <p className="text-text-muted">
             You&apos;re not part of any group yet.
           </p>
         </div>
@@ -93,7 +93,7 @@ export default async function GroupsPage() {
             <li key={group.id}>
               <Link
                 href={`/groups/${group.id}`}
-                className="block rounded-lg border border-zinc-200 bg-white p-4 text-black hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:border-zinc-700"
+                className="block rounded-lg border border-border bg-surface p-4 text-text hover:border-text-muted"
               >
                 {group.name}
               </Link>

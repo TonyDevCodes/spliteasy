@@ -129,35 +129,35 @@ export default async function GroupDetailPage({
     : null;
 
   return (
-    <div className="flex flex-1 flex-col items-center gap-6 bg-zinc-50 px-4 py-12 dark:bg-black">
+    <div className="flex flex-1 flex-col items-center gap-6 bg-background px-4 py-12">
       <RealtimeGroupListener groupId={group.id} />
       <div className="flex w-full max-w-md items-center justify-between">
         <Link
           href="/groups"
-          className="text-sm text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
+          className="text-sm text-text-muted hover:text-text"
         >
           &larr; Your groups
         </Link>
-        <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+        <div className="flex items-center gap-2 text-sm text-text-muted">
           <Link
             href="/profile"
-            className="font-medium text-black hover:underline dark:text-zinc-50"
+            className="font-medium text-text hover:underline"
           >
             {nameById[user.id] ?? getDisplayName({ display_name: null, email: user.email ?? "" })}
           </Link>
           <SignOutButton small />
         </div>
       </div>
-      <div className="flex w-full max-w-md flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex w-full max-w-md flex-col gap-4 rounded-lg border border-border bg-surface p-8">
         {hasLoadError && (
-          <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
+          <div className="rounded-md bg-danger-background p-3 text-sm text-danger">
             Some data failed to load — the numbers below may be incomplete.
             Try refreshing the page.
           </div>
         )}
 
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
+          <h1 className="text-xl font-semibold text-text">
             {group.name}
           </h1>
           <CurrencySelector
@@ -168,27 +168,27 @@ export default async function GroupDetailPage({
           />
         </div>
 
-        <div className="flex flex-col gap-1 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-          <h2 className="text-lg font-bold text-black dark:text-zinc-50">
+        <div className="flex flex-col gap-1 border-t border-border pt-4">
+          <h2 className="text-lg font-bold text-text">
             Your balance
           </h2>
           {myNet === 0 ? (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm text-text-muted">
               You&apos;re all settled up!
             </p>
           ) : (
             <>
               {totalOwedByMe > 0 && (
-                <p className="text-base font-semibold text-red-600 dark:text-red-400">
+                <p className="text-base font-semibold text-danger">
                   You owe {formatMoney(totalOwedByMe, group.currency)}
                 </p>
               )}
               {totalOwedToMe > 0 && (
-                <p className="text-base font-semibold text-green-600 dark:text-green-400">
+                <p className="text-base font-semibold text-success">
                   You are owed {formatMoney(totalOwedToMe, group.currency)}
                 </p>
               )}
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              <p className="text-sm text-text-muted">
                 Net:{" "}
                 {myNet > 0
                   ? `You are owed ${formatMoney(myNet, group.currency)}`
@@ -207,12 +207,12 @@ export default async function GroupDetailPage({
           currency={group.currency}
         />
 
-        <div className="flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-          <h2 className="text-sm font-semibold text-black dark:text-zinc-50">
+        <div className="flex flex-col gap-2 border-t border-border pt-4">
+          <h2 className="text-sm font-semibold text-text">
             Expenses
           </h2>
           {!hasExpenses ? (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm text-text-muted">
               No expenses yet.
             </p>
           ) : (
@@ -222,14 +222,14 @@ export default async function GroupDetailPage({
                   key={e.id}
                   className="flex items-center justify-between text-sm"
                 >
-                  <span className="text-zinc-700 dark:text-zinc-300">
+                  <span className="text-text">
                     {e.description}
-                    <span className="text-zinc-400 dark:text-zinc-500">
+                    <span className="text-text-muted">
                       {" "}
                       — paid by {nameById[e.paid_by] ?? "someone"}
                     </span>
                   </span>
-                  <span className="font-medium text-black dark:text-zinc-50">
+                  <span className="font-medium text-text">
                     {formatMoney(Number(e.amount), group.currency)}
                   </span>
                 </li>
@@ -238,15 +238,15 @@ export default async function GroupDetailPage({
           )}
           <Link
             href={`/groups/${group.id}/expenses/new`}
-            className="text-sm font-medium text-black hover:underline dark:text-zinc-50"
+            className="text-sm font-medium text-text hover:underline"
           >
             + Add expense
           </Link>
         </div>
 
-        <div className="flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+        <div className="flex flex-col gap-2 border-t border-border pt-4">
           {inviteUrl === null ? (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm text-text-muted">
               No active invite link.
             </p>
           ) : (
@@ -254,7 +254,7 @@ export default async function GroupDetailPage({
               href={inviteUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="break-all text-sm text-blue-600 hover:underline dark:text-blue-400"
+              className="break-all text-sm text-link hover:underline"
             >
               {inviteUrl}
             </a>
@@ -263,7 +263,7 @@ export default async function GroupDetailPage({
             <input type="hidden" name="groupId" value={group.id} />
             <button
               type="submit"
-              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary-hover"
             >
               Generate invite link
             </button>

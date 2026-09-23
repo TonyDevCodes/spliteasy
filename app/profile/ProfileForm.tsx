@@ -57,16 +57,16 @@ export default function ProfileForm({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <label className="text-sm text-zinc-600 dark:text-zinc-400">
+        <label className="text-sm text-text-muted">
           Email
         </label>
-        <p className="text-black dark:text-zinc-50">{email}</p>
+        <p className="text-text">{email}</p>
       </div>
 
       <div className="flex flex-col gap-1">
         <label
           htmlFor="name"
-          className="text-sm text-zinc-600 dark:text-zinc-400"
+          className="text-sm text-text-muted"
         >
           Name
         </label>
@@ -75,22 +75,22 @@ export default function ProfileForm({
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-black outline-none focus:border-black/30 dark:border-white/[.145] dark:text-zinc-50 dark:focus:border-white/30"
+          className="rounded border border-border bg-input-background px-3 py-2 text-text outline-none focus:border-text-muted"
         />
       </div>
 
       {status === "error" && error && (
-        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        <p className="text-sm text-danger">{error}</p>
       )}
       {status === "saved" && (
-        <p className="text-sm text-green-600 dark:text-green-400">Saved</p>
+        <p className="text-sm text-success">Saved</p>
       )}
 
       <button
         type="button"
         onClick={handleSave}
         disabled={status === "saving"}
-        className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary-hover disabled:bg-disabled disabled:text-on-disabled"
       >
         {status === "saving" ? "Saving..." : "Save"}
       </button>

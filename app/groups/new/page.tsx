@@ -52,12 +52,12 @@ async function createGroup(formData: FormData) {
 
 export default function NewGroupPage() {
   return (
-    <div className="flex flex-1 items-center justify-center bg-zinc-50 px-4 dark:bg-black">
+    <div className="flex flex-1 items-center justify-center bg-background px-4">
       <form
         action={createGroup}
-        className="flex w-full max-w-md flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-950"
+        className="flex w-full max-w-md flex-col gap-4 rounded-lg border border-border bg-surface p-8"
       >
-        <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
+        <h1 className="text-xl font-semibold text-text">
           Create a group
         </h1>
         <input
@@ -65,17 +65,17 @@ export default function NewGroupPage() {
           name="name"
           placeholder="Group name"
           required
-          className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+          className="rounded-md border border-border bg-input-background px-3 py-2 text-text"
         />
         <div className="flex flex-col gap-1">
-          <label htmlFor="currency" className="text-sm text-zinc-600 dark:text-zinc-400">
+          <label htmlFor="currency" className="text-sm text-text-muted">
             Currency
           </label>
           <select
             id="currency"
             name="currency"
             defaultValue={DEFAULT_CURRENCY}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+            className="rounded-md border border-border bg-input-background px-3 py-2 text-text"
           >
             {SUPPORTED_CURRENCIES.map((c) => (
               <option key={c} value={c}>
@@ -86,7 +86,7 @@ export default function NewGroupPage() {
         </div>
         <button
           type="submit"
-          className="rounded-md bg-black px-4 py-2 font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+          className="rounded-md bg-primary px-4 py-2 font-medium text-on-primary hover:bg-primary-hover"
         >
           Create
         </button>

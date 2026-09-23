@@ -1,13 +1,24 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { Slot, useRouter, useSegments } from "expo-router";
+import {
+  DarkTheme,
+  DefaultTheme,
+  Slot,
+  ThemeProvider as NavigationThemeProvider,
+  useRouter,
+  useSegments,
+  type Theme,
+} from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "../lib/auth-context";
+import { ThemeProvider, useTheme, useThemedStyles, type ThemeColors } from "../lib/theme";
 
 function RootNavigation() {
   const { session, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const styles = useThemedStyles(makeStyles);
 
   useEffect(() => {
     if (loading) return;
@@ -25,7 +36,7 @@ function RootNavigation() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={styles.spinner.color} />
       </View>
     );
   }
@@ -33,20 +44,54 @@ function RootNavigation() {
   return <Slot />;
 }
 
-export default function RootLayout() {
+function ThemedApp() {
+  const { theme, colors } = useTheme();
+
+  // Navigation headers, screen backgrounds and the status bar follow the theme.
+  const navigationTheme = useMemo<Theme>(() => {
+    const base = theme === "dark" ? DarkTheme : DefaultTheme;
+    return {
+      ...base,
+      colors: {
+        ...base.colors,
+        primary: colors.text,
+        background: colors.background,
+        card: colors.surface,
+        text: colors.text,
+        border: colors.border,
+      },
+    };
+  }, [theme, colors]);
+
   return (
-    <SafeAreaProvider>
+    <NavigationThemeProvider value={navigationTheme}>
+      <StatusBar style={theme === "dark" ? "light" : "dark"} />
       <AuthProvider>
         <RootNavigation />
       </AuthProvider>
+    </NavigationThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <ThemedApp />
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
 
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    loadingContainer: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.background,
+    },
+    spinner: {
+      color: c.text,
+    },
+  });

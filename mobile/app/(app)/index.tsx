@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
+import { useTheme, useThemedStyles, type ThemeColors } from "../../lib/theme";
 
 type GroupRow = {
   id: string;
@@ -23,6 +24,8 @@ type MembershipRow = {
 type GroupWithMemberCount = GroupRow & { memberCount: number | null };
 
 export default function GroupsScreen() {
+  const styles = useThemedStyles(makeStyles);
+  const { colors } = useTheme();
   const router = useRouter();
 
   const [groups, setGroups] = useState<GroupWithMemberCount[]>([]);
@@ -124,7 +127,7 @@ export default function GroupsScreen() {
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" />
+          <ActivityIndicator size="large" color={colors.text} />
         </View>
       ) : groups.length === 0 ? (
         <View style={styles.centered}>
@@ -163,70 +166,73 @@ export default function GroupsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#444",
-    marginBottom: 24,
-    textAlign: "center",
-  },
-  error: {
-    color: "#c00",
-    padding: 12,
-    textAlign: "center",
-  },
-  listContent: {
-    padding: 16,
-  },
-  groupItem: {
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-  },
-  groupName: {
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  groupSubtitle: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 4,
-  },
-  button: {
-    backgroundColor: "#111",
-    borderRadius: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  headerRightRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  headerButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  headerButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#111",
-  },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: c.background,
+    },
+    centered: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24,
+    },
+    emptyText: {
+      fontSize: 16,
+      color: c.textMuted,
+      marginBottom: 24,
+      textAlign: "center",
+    },
+    error: {
+      color: c.danger,
+      padding: 12,
+      textAlign: "center",
+    },
+    listContent: {
+      padding: 16,
+    },
+    groupItem: {
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 8,
+      padding: 16,
+      marginBottom: 12,
+    },
+    groupName: {
+      fontSize: 17,
+      fontWeight: "600",
+      color: c.text,
+    },
+    groupSubtitle: {
+      fontSize: 14,
+      color: c.textMuted,
+      marginTop: 4,
+    },
+    button: {
+      backgroundColor: c.primary,
+      borderRadius: 8,
+      paddingVertical: 14,
+      paddingHorizontal: 32,
+      alignItems: "center",
+    },
+    buttonText: {
+      color: c.onPrimary,
+      fontSize: 16,
+      fontWeight: "600",
+    },
+    headerRightRow: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    headerButton: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    headerButtonText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: c.text,
+    },
+  });

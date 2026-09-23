@@ -19,8 +19,8 @@ export function SignOutButton({ small = false }: { small?: boolean } = {}) {
       onClick={handleSignOut}
       className={
         small
-          ? "rounded-md border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          : "rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+          ? "rounded-md border border-border px-3 py-1 text-xs font-medium text-text hover:bg-surface-hover"
+          : "rounded-full bg-primary px-5 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover"
       }
     >
       Sign out

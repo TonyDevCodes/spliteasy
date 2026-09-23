@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
+import { useTheme, useThemedStyles, type ThemeColors } from "../../lib/theme";
 
 function parseTokensFromUrl(url: string): {
   accessToken: string | null;
@@ -26,6 +27,8 @@ function parseTokensFromUrl(url: string): {
 }
 
 export default function AuthCallbackScreen() {
+  const styles = useThemedStyles(makeStyles);
+  const { colors } = useTheme();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const handledRef = useRef(false);
@@ -78,30 +81,32 @@ export default function AuthCallbackScreen() {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" />
+      <ActivityIndicator size="large" color={colors.text} />
       <Text style={styles.message}>Confirming your account…</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-    backgroundColor: "#fff",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "600",
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  message: {
-    fontSize: 16,
-    color: "#333",
-    marginTop: 12,
-    textAlign: "center",
-  },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24,
+      backgroundColor: c.background,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: "600",
+      marginBottom: 12,
+      textAlign: "center",
+      color: c.text,
+    },
+    message: {
+      fontSize: 16,
+      color: c.text,
+      marginTop: 12,
+      textAlign: "center",
+    },
+  });

@@ -19,6 +19,7 @@ import { ErrorBoundary } from "../../../../lib/ErrorBoundary";
 import { getDisplayName } from "../../../../lib/displayName";
 import { subscribeToTableChanges, uniqueChannelName } from "../../../../lib/realtime";
 import { DEFAULT_CURRENCY, formatMoney, SUPPORTED_CURRENCIES } from "../../../../lib/money";
+import { useTheme, useThemedStyles, type ThemeColors } from "../../../../lib/theme";
 
 const WATCHED_TABLES = ["expenses", "settlements", "expense_splits", "group_members", "groups"];
 
@@ -77,6 +78,8 @@ type Invite = {
 type Tab = "balances" | "expenses" | "invite";
 
 export default function GroupDetailScreen() {
+  const styles = useThemedStyles(makeStyles);
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -381,7 +384,7 @@ export default function GroupDetailScreen() {
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" />
+          <ActivityIndicator size="large" color={colors.text} />
         </View>
       ) : (
         <>
@@ -533,7 +536,7 @@ export default function GroupDetailScreen() {
                       disabled={settlingKey === key}
                     >
                       {settlingKey === key ? (
-                        <ActivityIndicator size="small" />
+                        <ActivityIndicator size="small" color={colors.text} />
                       ) : (
                         <Text style={styles.settleButtonText}>Mark as settled</Text>
                       )}
@@ -592,7 +595,7 @@ export default function GroupDetailScreen() {
                   disabled={generatingInvite}
                 >
                   {generatingInvite ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator color={colors.onPrimary} />
                   ) : (
                     <Text style={styles.buttonText}>Generate invite link</Text>
                   )}
@@ -615,191 +618,197 @@ export default function GroupDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  errorText: {
-    color: "#c00",
-    fontSize: 16,
-    textAlign: "center",
-  },
-  error: {
-    color: "#c00",
-    padding: 12,
-    textAlign: "center",
-  },
-  warning: {
-    color: "#c00",
-    backgroundColor: "#fdecec",
-    padding: 10,
-    marginHorizontal: 16,
-    marginTop: 8,
-    borderRadius: 6,
-    fontSize: 13,
-    textAlign: "center",
-  },
-  tabBar: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: "center",
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
-  },
-  tabButtonActive: {
-    borderBottomColor: "#111",
-  },
-  tabButtonText: {
-    fontSize: 14,
-    color: "#888",
-    fontWeight: "600",
-  },
-  tabButtonTextActive: {
-    color: "#111",
-  },
-  listContent: {
-    padding: 16,
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  sectionTitleSpaced: {
-    marginTop: 16,
-  },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 8,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-  },
-  chipActive: {
-    backgroundColor: "#111",
-    borderColor: "#111",
-  },
-  chipText: {
-    fontSize: 14,
-    color: "#333",
-  },
-  chipTextActive: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  mutedText: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 4,
-  },
-  positiveText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#1a7f37",
-    marginBottom: 4,
-  },
-  negativeText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#c00",
-    marginBottom: 4,
-  },
-  balanceRow: {
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 10,
-  },
-  balanceRowText: {
-    fontSize: 14,
-    color: "#333",
-    marginBottom: 8,
-  },
-  settleButton: {
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  settleButtonText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#333",
-  },
-  expenseRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 10,
-  },
-  expenseRowLeft: {
-    flex: 1,
-    marginRight: 8,
-  },
-  expenseDescription: {
-    fontSize: 15,
-    fontWeight: "600",
-    marginBottom: 2,
-  },
-  expenseAmount: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  button: {
-    backgroundColor: "#111",
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  buttonSecondary: {
-    backgroundColor: "#444",
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  memberRow: {
-    fontSize: 14,
-    color: "#333",
-    paddingVertical: 4,
-  },
-  headerButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  headerButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#111",
-  },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: c.background,
+    },
+    centered: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24,
+    },
+    errorText: {
+      color: c.danger,
+      fontSize: 16,
+      textAlign: "center",
+    },
+    error: {
+      color: c.danger,
+      padding: 12,
+      textAlign: "center",
+    },
+    warning: {
+      color: c.danger,
+      backgroundColor: c.dangerBackground,
+      padding: 10,
+      marginHorizontal: 16,
+      marginTop: 8,
+      borderRadius: 6,
+      fontSize: 13,
+      textAlign: "center",
+    },
+    tabBar: {
+      flexDirection: "row",
+      borderBottomWidth: 1,
+      borderBottomColor: c.border,
+    },
+    tabButton: {
+      flex: 1,
+      paddingVertical: 12,
+      alignItems: "center",
+      borderBottomWidth: 2,
+      borderBottomColor: "transparent",
+    },
+    tabButtonActive: {
+      borderBottomColor: c.text,
+    },
+    tabButtonText: {
+      fontSize: 14,
+      color: c.textMuted,
+      fontWeight: "600",
+    },
+    tabButtonTextActive: {
+      color: c.text,
+    },
+    listContent: {
+      padding: 16,
+    },
+    section: {
+      marginBottom: 20,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: "700",
+      marginBottom: 8,
+      color: c.text,
+    },
+    sectionTitleSpaced: {
+      marginTop: 16,
+    },
+    chipRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginBottom: 8,
+    },
+    chip: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 20,
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+    },
+    chipActive: {
+      backgroundColor: c.primary,
+      borderColor: c.primary,
+    },
+    chipText: {
+      fontSize: 14,
+      color: c.text,
+    },
+    chipTextActive: {
+      color: c.onPrimary,
+      fontWeight: "600",
+    },
+    mutedText: {
+      fontSize: 14,
+      color: c.textMuted,
+      marginBottom: 4,
+    },
+    positiveText: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: c.success,
+      marginBottom: 4,
+    },
+    negativeText: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: c.danger,
+      marginBottom: 4,
+    },
+    balanceRow: {
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 10,
+    },
+    balanceRowText: {
+      fontSize: 14,
+      color: c.text,
+      marginBottom: 8,
+    },
+    settleButton: {
+      alignSelf: "flex-start",
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 6,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+    },
+    settleButtonText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: c.text,
+    },
+    expenseRow: {
+      backgroundColor: c.surface,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 10,
+    },
+    expenseRowLeft: {
+      flex: 1,
+      marginRight: 8,
+    },
+    expenseDescription: {
+      fontSize: 15,
+      fontWeight: "600",
+      marginBottom: 2,
+      color: c.text,
+    },
+    expenseAmount: {
+      fontSize: 15,
+      fontWeight: "700",
+      color: c.text,
+    },
+    button: {
+      backgroundColor: c.primary,
+      borderRadius: 8,
+      paddingVertical: 12,
+      alignItems: "center",
+      marginTop: 8,
+    },
+    buttonSecondary: {
+      backgroundColor: c.primaryHover,
+    },
+    buttonText: {
+      color: c.onPrimary,
+      fontSize: 15,
+      fontWeight: "600",
+    },
+    memberRow: {
+      fontSize: 14,
+      color: c.text,
+      paddingVertical: 4,
+    },
+    headerButton: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    headerButtonText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: c.text,
+    },
+  });

@@ -10,13 +10,18 @@ import {
 import { Stack, useRouter } from "expo-router";
 import { supabase } from "../../../lib/supabase";
 import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from "../../../lib/money";
+import { useTheme, useThemedStyles, type ThemeColors } from "../../../lib/theme";
 
 export default function NewGroupScreen() {
+  const styles = useThemedStyles(makeStyles);
+  const { colors } = useTheme();
   const router = useRouter();
   const [name, setName] = useState("");
   const [currency, setCurrency] = useState<string>(DEFAULT_CURRENCY);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const nameMissing = name.trim().length === 0;
 
   async function handleCreate() {
     const trimmedName = name.trim();
@@ -69,6 +74,7 @@ export default function NewGroupScreen() {
 
       <Text style={styles.label}>Group name</Text>
       <TextInput
+        placeholderTextColor={colors.placeholder}
         style={styles.input}
         value={name}
         onChangeText={setName}
@@ -96,80 +102,91 @@ export default function NewGroupScreen() {
       {error && <Text style={styles.error}>{error}</Text>}
 
       <TouchableOpacity
-        style={styles.button}
+        style={[styles.button, nameMissing && styles.buttonDisabled]}
         onPress={handleCreate}
-        disabled={submitting || name.trim().length === 0}
+        disabled={submitting || nameMissing}
       >
         {submitting ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.onPrimary} />
         ) : (
-          <Text style={styles.buttonText}>Create</Text>
+          <Text style={[styles.buttonText, nameMissing && styles.buttonTextDisabled]}>
+            Create
+          </Text>
         )}
       </TouchableOpacity>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 24,
-    backgroundColor: "#fff",
-  },
-  label: {
-    fontSize: 14,
-    color: "#444",
-    marginBottom: 4,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 16,
-    fontSize: 16,
-  },
-  error: {
-    color: "#c00",
-    marginBottom: 12,
-  },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 16,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-  },
-  chipActive: {
-    backgroundColor: "#111",
-    borderColor: "#111",
-  },
-  chipText: {
-    fontSize: 14,
-    color: "#333",
-  },
-  chipTextActive: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  button: {
-    backgroundColor: "#111",
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-});
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      justifyContent: "center",
+      padding: 24,
+      backgroundColor: c.background,
+    },
+    label: {
+      fontSize: 14,
+      color: c.textMuted,
+      marginBottom: 4,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      marginBottom: 16,
+      fontSize: 16,
+      color: c.text,
+      backgroundColor: c.inputBackground,
+    },
+    error: {
+      color: c.danger,
+      marginBottom: 12,
+    },
+    chipRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginBottom: 16,
+    },
+    chip: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 20,
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+    },
+    chipActive: {
+      backgroundColor: c.primary,
+      borderColor: c.primary,
+    },
+    chipText: {
+      fontSize: 14,
+      color: c.text,
+    },
+    chipTextActive: {
+      color: c.onPrimary,
+      fontWeight: "600",
+    },
+    button: {
+      backgroundColor: c.primary,
+      borderRadius: 8,
+      paddingVertical: 14,
+      alignItems: "center",
+      marginTop: 8,
+    },
+    buttonText: {
+      color: c.onPrimary,
+      fontSize: 16,
+      fontWeight: "600",
+    },
+    buttonDisabled: {
+      backgroundColor: c.disabled,
+    },
+    buttonTextDisabled: {
+      color: c.onDisabled,
+    },
+  });

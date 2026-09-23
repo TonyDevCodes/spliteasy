@@ -55,8 +55,8 @@ export default async function InvitePage({
 
   if (error || !invite) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-zinc-50 px-4 dark:bg-black">
-        <p className="text-red-600 dark:text-red-400">
+      <div className="flex flex-1 items-center justify-center bg-background px-4">
+        <p className="text-danger">
           This invite link is invalid.
         </p>
       </div>
@@ -65,8 +65,8 @@ export default async function InvitePage({
 
   if (invite.is_expired) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-zinc-50 px-4 dark:bg-black">
-        <p className="text-red-600 dark:text-red-400">
+      <div className="flex flex-1 items-center justify-center bg-background px-4">
+        <p className="text-danger">
           This invite link has expired.
         </p>
       </div>
@@ -74,12 +74,12 @@ export default async function InvitePage({
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-zinc-50 px-4 dark:bg-black">
-      <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-lg border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-950">
-        <p className="text-black dark:text-zinc-50">
+    <div className="flex flex-1 items-center justify-center bg-background px-4">
+      <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-lg border border-border bg-surface p-8 text-center">
+        <p className="text-text">
           You&apos;ve been invited to join
         </p>
-        <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
+        <h1 className="text-xl font-semibold text-text">
           {invite.group_name}
         </h1>
         <form action={joinGroup} className="w-full">
@@ -87,14 +87,14 @@ export default async function InvitePage({
           <input type="hidden" name="token" value={token} />
           <button
             type="submit"
-            className="w-full rounded-md bg-black px-4 py-2 font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            className="w-full rounded-md bg-primary px-4 py-2 font-medium text-on-primary hover:bg-primary-hover"
           >
             Join group
           </button>
         </form>
         <Link
           href="/groups"
-          className="text-sm text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-zinc-50"
+          className="text-sm text-text-muted hover:text-text"
         >
           Cancel
         </Link>
