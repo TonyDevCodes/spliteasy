@@ -30,6 +30,7 @@ import {
 import { shareCsv, sharePdf } from "../../../../lib/exportFiles";
 import { DEFAULT_CURRENCY, formatMoney, SUPPORTED_CURRENCIES } from "../../../../lib/money";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../../../lib/theme";
+import { useAuth } from "../../../../lib/auth-context";
 
 const WATCHED_TABLES = ["expenses", "settlements", "expense_splits", "group_members", "groups"];
 
@@ -97,6 +98,7 @@ const EXPORT_OPTIONS: { kind: ExportKind; label: string }[] = [
 ];
 
 export default function GroupDetailScreen() {
+  const authUserId = useAuth().user?.id ?? null;
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -130,9 +132,9 @@ export default function GroupDetailScreen() {
     setError(null);
     setNotFound(false);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    // The session user from the auth context: no network call, so a flaky
+    // connection cannot make a signed-in user look signed out here.
+    const user = authUserId ? { id: authUserId } : null;
 
     if (!user) {
       setLoading(false);
@@ -222,7 +224,7 @@ export default function GroupDetailScreen() {
     setSettlements(settlementRows ?? []);
     setInvite(inviteRows?.[0] ?? null);
     setLoading(false);
-  }, []);
+  }, [authUserId]);
 
   useFocusEffect(
     useCallback(() => {

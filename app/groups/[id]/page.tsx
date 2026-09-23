@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { computeDetailedBalances, computeSettlements } from "@/lib/settlements";
 import { getDisplayName } from "@/lib/displayName";
 import { formatMoney } from "@/lib/money";
@@ -22,9 +22,7 @@ export default async function GroupDetailPage({
   const { id } = await params;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser(supabase);
 
   if (!user) {
     redirect("/login");

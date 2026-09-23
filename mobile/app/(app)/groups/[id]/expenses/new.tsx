@@ -16,6 +16,7 @@ import { supabase } from "../../../../../lib/supabase";
 import { getDisplayName } from "../../../../../lib/displayName";
 import { DEFAULT_CURRENCY, formatMoney, getCurrencySymbol } from "../../../../../lib/money";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../../../../lib/theme";
+import { useAuth } from "../../../../../lib/auth-context";
 
 const RECEIPTS_BUCKET = "receipts";
 
@@ -38,6 +39,7 @@ type Member = {
 type SplitMode = "equally" | "custom";
 
 export default function NewExpenseScreen() {
+  const authUserId = useAuth().user?.id ?? null;
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTheme();
   const { id: groupId } = useLocalSearchParams<{ id: string }>();
@@ -63,9 +65,9 @@ export default function NewExpenseScreen() {
     setLoading(true);
     setLoadError(null);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    // The session user from the auth context: no network call, so a flaky
+    // connection cannot make a signed-in user look signed out here.
+    const user = authUserId ? { id: authUserId } : null;
 
     const [
       { data: memberRows, error: membersError },
@@ -102,7 +104,7 @@ export default function NewExpenseScreen() {
     setMembers(formatted);
     setPaidBy((prev) => prev ?? user?.id ?? formatted[0]?.id ?? null);
     setLoading(false);
-  }, []);
+  }, [authUserId]);
 
   useFocusEffect(
     useCallback(() => {

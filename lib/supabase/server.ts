@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { isTransientAuthError } from "@/lib/authErrors";
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -25,4 +26,19 @@ export async function createClient() {
       },
     },
   );
+}
+
+/**
+ * The signed-in user, or null when there is no valid session. A temporary
+ * failure (network, rate limit, Auth server error) throws instead of returning
+ * null, so pages show a retryable error rather than redirecting to /login as
+ * if the user had been signed out.
+ */
+export async function getCurrentUser(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data, error } = await supabase.auth.getUser();
+  if (data.user) return data.user;
+  if (isTransientAuthError(error)) {
+    throw new Error("Could not verify your session right now. Please try again.", { cause: error });
+  }
+  return null;
 }

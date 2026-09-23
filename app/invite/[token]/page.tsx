@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
 
 async function joinGroup(formData: FormData) {
   "use server";
@@ -9,9 +9,7 @@ async function joinGroup(formData: FormData) {
   const token = formData.get("token") as string;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser(supabase);
 
   if (!user) {
     redirect(`/login?next=/invite/${token}`);
@@ -39,9 +37,7 @@ export default async function InvitePage({
   const { token } = await params;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser(supabase);
 
   if (!user) {
     redirect(`/login?next=/invite/${token}`);

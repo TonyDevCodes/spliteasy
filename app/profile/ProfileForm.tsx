@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { validateDisplayNameInput } from "@/lib/displayName";
+import { isTransientAuthError } from "@/lib/authErrors";
 
 type Status = "idle" | "saving" | "saved" | "error";
 
@@ -31,11 +32,16 @@ export default function ProfileForm({
     const supabase = createClient();
     const {
       data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
 
     if (!user) {
       setStatus("error");
-      setError("You must be signed in.");
+      setError(
+        isTransientAuthError(userError)
+          ? "Could not reach the server. Please try again."
+          : "You must be signed in."
+      );
       return;
     }
 

@@ -11,8 +11,10 @@ import { Stack, useRouter } from "expo-router";
 import { supabase } from "../../../lib/supabase";
 import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from "../../../lib/money";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../../lib/theme";
+import { useAuth } from "../../../lib/auth-context";
 
 export default function NewGroupScreen() {
+  const authUserId = useAuth().user?.id ?? null;
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTheme();
   const router = useRouter();
@@ -30,9 +32,9 @@ export default function NewGroupScreen() {
     setError(null);
     setSubmitting(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    // The session user from the auth context: no network call, so a flaky
+    // connection cannot make a signed-in user look signed out here.
+    const user = authUserId ? { id: authUserId } : null;
 
     if (!user) {
       setError("You must be signed in to create a group.");

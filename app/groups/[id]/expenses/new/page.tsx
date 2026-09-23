@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCurrentUser } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { getDisplayName } from '@/lib/displayName'
 import ExpenseForm from './ExpenseForm'
@@ -12,9 +12,7 @@ export default async function NewExpensePage({
   const { id: groupId } = await params
   const supabase = await createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser(supabase)
 
   if (!user) {
     redirect('/login')
@@ -48,9 +46,7 @@ export default async function NewExpensePage({
     'use server'
 
     const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getCurrentUser(supabase)
 
     if (!user) {
       throw new Error('Not authenticated')

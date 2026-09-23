@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
 import { supabase } from "./supabase";
+import { isTransientAuthError } from "./authErrors";
 
 type AuthContextValue = {
   session: Session | null;
@@ -23,19 +24,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+
+    // When the stored access token has expired and the refresh fails because
+    // of the network, getSession() returns no session but keeps it in storage.
+    // Treating that as "signed out" sent users to the sign-in screen, so keep
+    // waiting (spinner) and retry until the network is back.
+    async function loadInitialSession(attempt: number) {
+      const { data, error } = await supabase.auth.getSession();
+      if (cancelled) return;
+
+      if (!data.session && isTransientAuthError(error)) {
+        console.warn("Session refresh failed, retrying:", error);
+        retryTimer = setTimeout(() => loadInitialSession(attempt + 1), Math.min(30_000, 1_000 * 2 ** attempt));
+        return;
+      }
+
       setSession(data.session);
       setLoading(false);
-    });
+    }
+
+    loadInitialSession(0);
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
+      // The initial session is handled above, where a network failure can be
+      // told apart from a real "no session".
+      if (event === "INITIAL_SESSION") return;
       setSession(newSession);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   async function signIn(email: string, password: string) {

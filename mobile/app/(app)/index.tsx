@@ -32,6 +32,7 @@ export default function GroupsScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const { user } = useAuth();
+  const authUserId = user?.id ?? null;
   const unreadBadge = formatBadgeCount(useUnreadNotifications(user?.id));
 
   const [groups, setGroups] = useState<GroupWithMemberCount[]>([]);
@@ -42,11 +43,9 @@ export default function GroupsScreen() {
     setLoading(true);
     setError(null);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
+    // The session user from the auth context: no network call, so a flaky
+    // connection cannot make a signed-in user look signed out here.
+    if (!authUserId) {
       setLoading(false);
       return;
     }
@@ -54,7 +53,7 @@ export default function GroupsScreen() {
     const { data: memberships, error: membershipsError } = await supabase
       .from("group_members")
       .select("groups(id, name, created_at)")
-      .eq("user_id", user.id)
+      .eq("user_id", authUserId)
       .order("created_at", { referencedTable: "groups", ascending: false })
       .returns<MembershipRow[]>();
 
@@ -97,7 +96,7 @@ export default function GroupsScreen() {
       }))
     );
     setLoading(false);
-  }, []);
+  }, [authUserId]);
 
   useFocusEffect(
     useCallback(() => {
