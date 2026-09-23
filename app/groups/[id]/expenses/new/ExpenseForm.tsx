@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { formatMoney, getCurrencySymbol } from '@/lib/money'
 
 type Member = {
   id: string
@@ -11,10 +12,12 @@ type Member = {
 type Props = {
   members: Member[]
   currentUserId: string
+  currency: string
   addExpenseAction: (formData: FormData) => Promise<void>
 }
 
-export default function ExpenseForm({ members, currentUserId, addExpenseAction }: Props) {
+export default function ExpenseForm({ members, currentUserId, currency, addExpenseAction }: Props) {
+  const currencySymbol = getCurrencySymbol(currency)
   const router = useRouter()
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
@@ -60,7 +63,7 @@ export default function ExpenseForm({ members, currentUserId, addExpenseAction }
     }
     if (splitMismatch) {
       setError(
-        `Split total (${(splitTotal / 100).toFixed(2)}) does not match the expense amount (${(amountCents / 100).toFixed(2)})`
+        `Split total (${formatMoney(splitTotal / 100, currency)}) does not match the expense amount (${formatMoney(amountCents / 100, currency)})`
       )
       return
     }
@@ -100,7 +103,9 @@ export default function ExpenseForm({ members, currentUserId, addExpenseAction }
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">Total amount</label>
+        <label className="block text-sm font-medium mb-1">
+          Total amount ({currencySymbol})
+        </label>
         <input
           type="number"
           step="0.01"
@@ -169,12 +174,12 @@ export default function ExpenseForm({ members, currentUserId, addExpenseAction }
                   setCustomSplits((prev) => ({ ...prev, [m.id]: e.target.value }))
                 }
                 className="w-28 rounded-md border bg-white px-2 py-1 text-black"
-                placeholder="0.00"
+                placeholder={`${currencySymbol}0.00`}
               />
             </div>
           ))}
           <p className={`text-sm ${splitMismatch ? 'text-red-600' : 'text-zinc-500'}`}>
-            Total: {(splitTotal / 100).toFixed(2)} / {(amountCents / 100).toFixed(2)}
+            Total: {formatMoney(splitTotal / 100, currency)} / {formatMoney(amountCents / 100, currency)}
           </p>
         </div>
       )}

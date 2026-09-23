@@ -9,10 +9,12 @@ import {
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { supabase } from "../../../lib/supabase";
+import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from "../../../lib/money";
 
 export default function NewGroupScreen() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [currency, setCurrency] = useState<string>(DEFAULT_CURRENCY);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -35,7 +37,7 @@ export default function NewGroupScreen() {
 
     const { data: group, error: groupError } = await supabase
       .from("groups")
-      .insert({ name: trimmedName, created_by: user.id })
+      .insert({ name: trimmedName, created_by: user.id, currency })
       .select("id")
       .single();
 
@@ -73,6 +75,23 @@ export default function NewGroupScreen() {
         placeholder="Group name"
         autoCapitalize="words"
       />
+
+      <Text style={styles.label}>Currency</Text>
+      <View style={styles.chipRow}>
+        {SUPPORTED_CURRENCIES.map((c) => (
+          <TouchableOpacity
+            key={c}
+            style={[styles.chip, currency === c && styles.chipActive]}
+            onPress={() => setCurrency(c)}
+          >
+            <Text
+              style={[styles.chipText, currency === c && styles.chipTextActive]}
+            >
+              {c}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {error && <Text style={styles.error}>{error}</Text>}
 
@@ -115,6 +134,31 @@ const styles = StyleSheet.create({
   error: {
     color: "#c00",
     marginBottom: 12,
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+  chip: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  chipActive: {
+    backgroundColor: "#111",
+    borderColor: "#111",
+  },
+  chipText: {
+    fontSize: 14,
+    color: "#333",
+  },
+  chipTextActive: {
+    color: "#fff",
+    fontWeight: "600",
   },
   button: {
     backgroundColor: "#111",

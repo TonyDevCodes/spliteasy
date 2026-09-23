@@ -14,6 +14,7 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-rou
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../../../../../lib/supabase";
 import { getDisplayName } from "../../../../../lib/displayName";
+import { DEFAULT_CURRENCY, formatMoney, getCurrencySymbol } from "../../../../../lib/money";
 
 const RECEIPTS_BUCKET = "receipts";
 
@@ -40,6 +41,7 @@ export default function NewExpenseScreen() {
   const router = useRouter();
 
   const [members, setMembers] = useState<Member[]>([]);
+  const [currency, setCurrency] = useState<string>(DEFAULT_CURRENCY);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -62,17 +64,29 @@ export default function NewExpenseScreen() {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const { data: memberRows, error: membersError } = await supabase
-      .from("group_members")
-      .select("user_id, profiles(id, display_name, email)")
-      .eq("group_id", id)
-      .returns<MemberRow[]>();
+    const [
+      { data: memberRows, error: membersError },
+      { data: groupData, error: groupError },
+    ] = await Promise.all([
+      supabase
+        .from("group_members")
+        .select("user_id, profiles(id, display_name, email)")
+        .eq("group_id", id)
+        .returns<MemberRow[]>(),
+      supabase.from("groups").select("currency").eq("id", id).maybeSingle(),
+    ]);
 
     if (membersError) {
       console.error("Members query error:", membersError);
       setLoadError("Something went wrong loading group members.");
       setLoading(false);
       return;
+    }
+
+    if (groupError) {
+      console.error("Group currency query error:", groupError);
+    } else if (groupData) {
+      setCurrency(groupData.currency);
     }
 
     const formatted = (memberRows ?? [])
@@ -113,6 +127,7 @@ export default function NewExpenseScreen() {
 
   const splitTotal = splits.reduce((sum, s) => sum + s.amountCents, 0);
   const splitMismatch = splitMode === "custom" && splitTotal !== amountCents;
+  const currencySymbol = getCurrencySymbol(currency);
 
   async function handleTakePhoto() {
     setPhotoError(null);
@@ -204,7 +219,7 @@ export default function NewExpenseScreen() {
     }
     if (splitMismatch) {
       setError(
-        `Split total (${(splitTotal / 100).toFixed(2)}) does not match the expense amount (${(amountCents / 100).toFixed(2)})`
+        `Split total (${formatMoney(splitTotal / 100, currency)}) does not match the expense amount (${formatMoney(amountCents / 100, currency)})`
       );
       return;
     }
@@ -298,7 +313,7 @@ export default function NewExpenseScreen() {
         placeholder="e.g. Dinner"
       />
 
-      <Text style={styles.label}>Total amount</Text>
+      <Text style={styles.label}>Total amount ({currencySymbol})</Text>
       <TextInput
         style={styles.input}
         value={amount}
@@ -353,13 +368,13 @@ export default function NewExpenseScreen() {
                 onChangeText={(text) =>
                   setCustomSplits((prev) => ({ ...prev, [m.id]: text }))
                 }
-                placeholder="0.00"
+                placeholder={`${currencySymbol}0.00`}
                 keyboardType="decimal-pad"
               />
             </View>
           ))}
           <Text style={[styles.mutedText, splitMismatch && styles.error]}>
-            Total: {(splitTotal / 100).toFixed(2)} / {(amountCents / 100).toFixed(2)}
+            Total: {formatMoney(splitTotal / 100, currency)} / {formatMoney(amountCents / 100, currency)}
           </Text>
         </View>
       )}

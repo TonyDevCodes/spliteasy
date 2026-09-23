@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from "@/lib/money";
 
 async function createGroup(formData: FormData) {
   "use server";
@@ -9,6 +10,11 @@ async function createGroup(formData: FormData) {
   if (!name) {
     return;
   }
+
+  const rawCurrency = formData.get("currency") as string | null;
+  const currency = SUPPORTED_CURRENCIES.includes(rawCurrency as any)
+    ? rawCurrency
+    : DEFAULT_CURRENCY;
 
   const supabase = await createClient();
   const {
@@ -21,7 +27,7 @@ async function createGroup(formData: FormData) {
 
   const { data: group, error: groupError } = await supabase
     .from("groups")
-    .insert({ name, created_by: user.id })
+    .insert({ name, created_by: user.id, currency })
     .select("id")
     .single();
 
@@ -61,6 +67,23 @@ export default function NewGroupPage() {
           required
           className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
         />
+        <div className="flex flex-col gap-1">
+          <label htmlFor="currency" className="text-sm text-zinc-600 dark:text-zinc-400">
+            Currency
+          </label>
+          <select
+            id="currency"
+            name="currency"
+            defaultValue={DEFAULT_CURRENCY}
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+          >
+            {SUPPORTED_CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
         <button
           type="submit"
           className="rounded-md bg-black px-4 py-2 font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { BalanceLine } from "@/lib/settlements";
+import { formatMoney } from "@/lib/money";
 import { recordSettlement } from "./actions";
 
 type Props = {
@@ -10,6 +11,7 @@ type Props = {
   detailedLines: BalanceLine[];
   simplifiedLines: BalanceLine[];
   nameById: Record<string, string>;
+  currency: string;
 };
 
 export default function BalancesSection({
@@ -18,6 +20,7 @@ export default function BalancesSection({
   detailedLines,
   simplifiedLines,
   nameById,
+  currency,
 }: Props) {
   const [view, setView] = useState<"detailed" | "simplified">("detailed");
   const lines = view === "detailed" ? detailedLines : simplifiedLines;
@@ -71,8 +74,8 @@ export default function BalancesSection({
                 >
                   <span className="text-zinc-700 dark:text-zinc-300">
                     {nameById[line.from] ?? "Someone"} owes{" "}
-                    {nameById[line.to] ?? "someone"}: €
-                    {line.amount.toFixed(2)}
+                    {nameById[line.to] ?? "someone"}:{" "}
+                    {formatMoney(line.amount, currency)}
                   </span>
                   <form action={recordSettlement}>
                     <input type="hidden" name="groupId" value={groupId} />

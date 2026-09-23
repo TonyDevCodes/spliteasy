@@ -21,7 +21,7 @@ export default async function NewExpensePage({
 
   const { data: group, error: groupError } = await supabase
     .from('groups')
-    .select('id, name')
+    .select('id, name, currency')
     .eq('id', groupId)
     .single()
 
@@ -106,6 +106,7 @@ export default async function NewExpensePage({
       <ExpenseForm
         members={formattedMembers}
         currentUserId={user.id}
+        currency={group.currency}
         addExpenseAction={addExpense}
       />
     </div>

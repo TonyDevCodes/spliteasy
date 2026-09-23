@@ -3,8 +3,10 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { computeDetailedBalances, computeSettlements } from "@/lib/settlements";
 import { getDisplayName } from "@/lib/displayName";
+import { formatMoney } from "@/lib/money";
 import RealtimeGroupListener from "./RealtimeGroupListener";
 import BalancesSection from "./BalancesSection";
+import CurrencySelector from "./CurrencySelector";
 import { createInvite } from "./actions";
 import { SignOutButton } from "@/app/sign-out-button";
 
@@ -28,7 +30,7 @@ export default async function GroupDetailPage({
 
   const { data: group, error } = await supabase
     .from("groups")
-    .select("id, name, created_at")
+    .select("id, name, created_at, currency, created_by")
     .eq("id", id)
     .maybeSingle();
 
@@ -154,9 +156,17 @@ export default async function GroupDetailPage({
           </div>
         )}
 
-        <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
-          {group.name}
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
+            {group.name}
+          </h1>
+          <CurrencySelector
+            key={group.currency}
+            groupId={group.id}
+            currency={group.currency}
+            editable={group.created_by === user.id}
+          />
+        </div>
 
         <div className="flex flex-col gap-1 border-t border-zinc-200 pt-4 dark:border-zinc-800">
           <h2 className="text-lg font-bold text-black dark:text-zinc-50">
@@ -170,19 +180,19 @@ export default async function GroupDetailPage({
             <>
               {totalOwedByMe > 0 && (
                 <p className="text-base font-semibold text-red-600 dark:text-red-400">
-                  You owe €{totalOwedByMe.toFixed(2)}
+                  You owe {formatMoney(totalOwedByMe, group.currency)}
                 </p>
               )}
               {totalOwedToMe > 0 && (
                 <p className="text-base font-semibold text-green-600 dark:text-green-400">
-                  You are owed €{totalOwedToMe.toFixed(2)}
+                  You are owed {formatMoney(totalOwedToMe, group.currency)}
                 </p>
               )}
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 Net:{" "}
                 {myNet > 0
-                  ? `You are owed €${myNet.toFixed(2)}`
-                  : `You owe €${Math.abs(myNet).toFixed(2)}`}
+                  ? `You are owed ${formatMoney(myNet, group.currency)}`
+                  : `You owe ${formatMoney(Math.abs(myNet), group.currency)}`}
               </p>
             </>
           )}
@@ -194,6 +204,7 @@ export default async function GroupDetailPage({
           detailedLines={detailedLines}
           simplifiedLines={simplifiedLines}
           nameById={nameById}
+          currency={group.currency}
         />
 
         <div className="flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
@@ -219,7 +230,7 @@ export default async function GroupDetailPage({
                     </span>
                   </span>
                   <span className="font-medium text-black dark:text-zinc-50">
-                    €{Number(e.amount).toFixed(2)}
+                    {formatMoney(Number(e.amount), group.currency)}
                   </span>
                 </li>
               ))}

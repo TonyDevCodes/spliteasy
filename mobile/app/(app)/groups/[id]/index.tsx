@@ -18,8 +18,9 @@ import {
 import { ErrorBoundary } from "../../../../lib/ErrorBoundary";
 import { getDisplayName } from "../../../../lib/displayName";
 import { subscribeToTableChanges, uniqueChannelName } from "../../../../lib/realtime";
+import { DEFAULT_CURRENCY, formatMoney, SUPPORTED_CURRENCIES } from "../../../../lib/money";
 
-const WATCHED_TABLES = ["expenses", "settlements", "expense_splits", "group_members"];
+const WATCHED_TABLES = ["expenses", "settlements", "expense_splits", "group_members", "groups"];
 
 const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -27,6 +28,8 @@ type Group = {
   id: string;
   name: string;
   created_at: string;
+  currency: string;
+  created_by: string;
 };
 
 type ProfileRow = {
@@ -93,6 +96,8 @@ export default function GroupDetailScreen() {
   const [loadWarning, setLoadWarning] = useState(false);
   const [settlingKey, setSettlingKey] = useState<string | null>(null);
   const [generatingInvite, setGeneratingInvite] = useState(false);
+  const [currencyError, setCurrencyError] = useState<string | null>(null);
+  const [savingCurrency, setSavingCurrency] = useState(false);
 
   const loadGroupData = useCallback(async (groupId: string) => {
     setLoading(true);
@@ -112,7 +117,7 @@ export default function GroupDetailScreen() {
 
     const { data: groupData, error: groupError } = await supabase
       .from("groups")
-      .select("id, name, created_at")
+      .select("id, name, created_at, currency, created_by")
       .eq("id", groupId)
       .maybeSingle();
 
@@ -270,6 +275,7 @@ export default function GroupDetailScreen() {
   );
 
   const myNet = Math.round((totalOwedToMe - totalOwedByMe) * 100) / 100;
+  const currency = group?.currency ?? DEFAULT_CURRENCY;
 
   async function handleSettle(line: BalanceLine) {
     if (!id) return;
@@ -291,6 +297,28 @@ export default function GroupDetailScreen() {
     }
 
     setSettlingKey(null);
+  }
+
+  async function handleChangeCurrency(nextCurrency: string) {
+    if (!id || !group || nextCurrency === group.currency) return;
+
+    setSavingCurrency(true);
+    setCurrencyError(null);
+
+    const { error: currencyUpdateError } = await supabase
+      .from("groups")
+      .update({ currency: nextCurrency })
+      .eq("id", id);
+
+    setSavingCurrency(false);
+
+    if (currencyUpdateError) {
+      console.error("Update currency error:", currencyUpdateError);
+      setCurrencyError("Something went wrong changing the currency.");
+      return;
+    }
+
+    setGroup({ ...group, currency: nextCurrency });
   }
 
   async function handleGenerateInvite() {
@@ -386,26 +414,58 @@ export default function GroupDetailScreen() {
               contentContainerStyle={styles.listContent}
               ListHeaderComponent={
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Your balance</Text>
+                  <Text style={styles.sectionTitle}>Currency</Text>
+                  {group && group.created_by === currentUserId ? (
+                    <>
+                      <View style={styles.chipRow}>
+                        {SUPPORTED_CURRENCIES.map((c) => (
+                          <TouchableOpacity
+                            key={c}
+                            style={[styles.chip, group.currency === c && styles.chipActive]}
+                            onPress={() => handleChangeCurrency(c)}
+                            disabled={savingCurrency}
+                          >
+                            <Text
+                              style={[
+                                styles.chipText,
+                                group.currency === c && styles.chipTextActive,
+                              ]}
+                            >
+                              {c}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                      {currencyError && <Text style={styles.error}>{currencyError}</Text>}
+                    </>
+                  ) : (
+                    <Text style={[styles.mutedText, styles.sectionTitleSpaced]}>
+                      {group?.currency}
+                    </Text>
+                  )}
+
+                  <Text style={[styles.sectionTitle, styles.sectionTitleSpaced]}>
+                    Your balance
+                  </Text>
                   {myNet === 0 ? (
                     <Text style={styles.mutedText}>You&apos;re all settled up!</Text>
                   ) : (
                     <>
                       {totalOwedByMe > 0 && (
                         <Text style={styles.negativeText}>
-                          You owe €{totalOwedByMe.toFixed(2)}
+                          You owe {formatMoney(totalOwedByMe, currency)}
                         </Text>
                       )}
                       {totalOwedToMe > 0 && (
                         <Text style={styles.positiveText}>
-                          You are owed €{totalOwedToMe.toFixed(2)}
+                          You are owed {formatMoney(totalOwedToMe, currency)}
                         </Text>
                       )}
                       <Text style={styles.mutedText}>
                         Net:{" "}
                         {myNet > 0
-                          ? `You are owed €${myNet.toFixed(2)}`
-                          : `You owe €${Math.abs(myNet).toFixed(2)}`}
+                          ? `You are owed ${formatMoney(myNet, currency)}`
+                          : `You owe ${formatMoney(Math.abs(myNet), currency)}`}
                       </Text>
                     </>
                   )}
@@ -464,7 +524,8 @@ export default function GroupDetailScreen() {
                   <View style={styles.balanceRow}>
                     <Text style={styles.balanceRowText}>
                       {nameById[item.from] ?? "Someone"} owes{" "}
-                      {nameById[item.to] ?? "someone"}: €{item.amount.toFixed(2)}
+                      {nameById[item.to] ?? "someone"}:{" "}
+                      {formatMoney(item.amount, currency)}
                     </Text>
                     <TouchableOpacity
                       style={styles.settleButton}
@@ -501,7 +562,9 @@ export default function GroupDetailScreen() {
                       {new Date(item.created_at).toLocaleDateString()}
                     </Text>
                   </View>
-                  <Text style={styles.expenseAmount}>€{Number(item.amount).toFixed(2)}</Text>
+                  <Text style={styles.expenseAmount}>
+                    {formatMoney(Number(item.amount), currency)}
+                  </Text>
                 </View>
               )}
             />
