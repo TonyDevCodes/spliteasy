@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   Modal,
   Pressable,
   Share,
@@ -37,6 +38,12 @@ import { shareCsv, sharePdf } from "../../../../lib/exportFiles";
 import { DEFAULT_CURRENCY, formatMoney, SUPPORTED_CURRENCIES } from "../../../../lib/money";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../../../lib/theme";
 import { useAuth } from "../../../../lib/auth-context";
+import {
+  collectReceiptPaths,
+  RECEIPT_SIGNED_URL_TTL_SECONDS,
+  RECEIPTS_BUCKET,
+  signedUrlsByPath,
+} from "../../../../lib/receipts";
 
 const WATCHED_TABLES = ["expenses", "settlements", "expense_splits", "group_members", "groups"];
 
@@ -73,6 +80,7 @@ type Expense = {
   amount: number;
   description: string;
   created_at: string;
+  receipt_url: string | null;
 };
 
 type Split = {
@@ -135,6 +143,9 @@ export default function GroupDetailScreen() {
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState<ExportKind | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
+  // Signed URLs (private bucket) by receipt path, and the one shown full-size.
+  const [receiptUrls, setReceiptUrls] = useState<Record<string, string>>({});
+  const [viewingReceiptUrl, setViewingReceiptUrl] = useState<string | null>(null);
 
   const loadGroupData = useCallback(async (groupId: string) => {
     setLoading(true);
@@ -184,7 +195,7 @@ export default function GroupDetailScreen() {
         .returns<MemberRow[]>(),
       supabase
         .from("expenses")
-        .select("id, paid_by, amount, description, created_at")
+        .select("id, paid_by, amount, description, created_at, receipt_url")
         .eq("group_id", groupId)
         .order("created_at", { ascending: false })
         .returns<Expense[]>(),
@@ -237,6 +248,20 @@ export default function GroupDetailScreen() {
     setSettlements(settlementRows ?? []);
     setInvite(inviteRows?.[0] ?? null);
     setLoading(false);
+
+    // Re-signed on every load, so the 60-minute URLs stay fresh.
+    const receiptPaths = collectReceiptPaths(expenseRows ?? []);
+    if (receiptPaths.length === 0) {
+      setReceiptUrls({});
+      return;
+    }
+    const { data: signed, error: signError } = await supabase.storage
+      .from(RECEIPTS_BUCKET)
+      .createSignedUrls(receiptPaths, RECEIPT_SIGNED_URL_TTL_SECONDS);
+    if (signError) {
+      console.error("Receipt signed URL error:", signError);
+    }
+    setReceiptUrls(signedUrlsByPath(signed));
   }, [authUserId]);
 
   useFocusEffect(
@@ -502,6 +527,28 @@ export default function GroupDetailScreen() {
         </Pressable>
       </Modal>
 
+      <Modal
+        visible={viewingReceiptUrl !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setViewingReceiptUrl(null)}
+      >
+        <Pressable
+          style={styles.receiptViewer}
+          onPress={() => setViewingReceiptUrl(null)}
+          accessibilityLabel="Close receipt"
+        >
+          {viewingReceiptUrl && (
+            <Image
+              source={{ uri: viewingReceiptUrl }}
+              style={styles.receiptFull}
+              resizeMode="contain"
+            />
+          )}
+          <Text style={styles.receiptViewerHint}>Tap to close</Text>
+        </Pressable>
+      </Modal>
+
       {loading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.text} />
@@ -693,20 +740,34 @@ export default function GroupDetailScreen() {
               ListEmptyComponent={
                 <Text style={styles.mutedText}>No expenses yet.</Text>
               }
-              renderItem={({ item }) => (
-                <View style={styles.expenseRow}>
-                  <View style={styles.expenseRowLeft}>
-                    <Text style={styles.expenseDescription}>{item.description}</Text>
-                    <Text style={styles.mutedText}>
-                      paid by {nameForUserId(item.paid_by, nameById)} ·{" "}
-                      {new Date(item.created_at).toLocaleDateString()}
+              renderItem={({ item }) => {
+                const receiptUrl = item.receipt_url ? receiptUrls[item.receipt_url] : undefined;
+                return (
+                  <View style={styles.expenseRow}>
+                    <View style={styles.expenseRowLeft}>
+                      <Text style={styles.expenseDescription}>{item.description}</Text>
+                      <Text style={styles.mutedText}>
+                        paid by {nameForUserId(item.paid_by, nameById)} ·{" "}
+                        {new Date(item.created_at).toLocaleDateString()}
+                      </Text>
+                      {receiptUrl && (
+                        <TouchableOpacity
+                          style={styles.receiptLink}
+                          onPress={() => setViewingReceiptUrl(receiptUrl)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`View receipt for ${item.description}`}
+                        >
+                          <Image source={{ uri: receiptUrl }} style={styles.receiptThumb} />
+                          <Text style={styles.receiptLinkText}>Receipt</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    <Text style={styles.expenseAmount}>
+                      {formatMoney(Number(item.amount), currency)}
                     </Text>
                   </View>
-                  <Text style={styles.expenseAmount}>
-                    {formatMoney(Number(item.amount), currency)}
-                  </Text>
-                </View>
-              )}
+                );
+              }}
             />
           )}
 
@@ -918,6 +979,47 @@ const makeStyles = (c: ThemeColors) =>
       fontSize: 15,
       fontWeight: "700",
       color: c.text,
+    },
+    receiptLink: {
+      flexDirection: "row",
+      alignItems: "center",
+      alignSelf: "flex-start",
+      gap: 8,
+      marginTop: 6,
+    },
+    receiptThumb: {
+      width: 40,
+      height: 40,
+      borderRadius: 4,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.surfaceHover,
+    },
+    receiptLinkText: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: c.link,
+    },
+    receiptViewer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: c.overlay,
+      padding: 16,
+    },
+    receiptFull: {
+      width: "100%",
+      height: "85%",
+    },
+    receiptViewerHint: {
+      marginTop: 12,
+      fontSize: 14,
+      color: c.text,
+      backgroundColor: c.surface,
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 6,
+      overflow: "hidden",
     },
     button: {
       backgroundColor: c.primary,

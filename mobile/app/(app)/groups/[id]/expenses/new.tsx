@@ -17,8 +17,12 @@ import { getDisplayName } from "../../../../../lib/displayName";
 import { DEFAULT_CURRENCY, formatMoney, getCurrencySymbol } from "../../../../../lib/money";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../../../../lib/theme";
 import { useAuth } from "../../../../../lib/auth-context";
-
-const RECEIPTS_BUCKET = "receipts";
+import {
+  buildReceiptPath,
+  receiptContentType,
+  receiptExtension,
+  RECEIPTS_BUCKET,
+} from "../../../../../lib/receipts";
 
 type ProfileRow = {
   id: string;
@@ -185,14 +189,13 @@ export default function NewExpenseScreen() {
     try {
       const response = await fetch(uri);
       const arrayBuffer = await response.arrayBuffer();
-      const extMatch = uri.match(/\.(\w+)$/);
-      const ext = (extMatch?.[1] || "jpg").toLowerCase();
-      const path = `${groupId}/${Date.now()}.${ext}`;
+      const ext = receiptExtension(uri, response.headers.get("content-type"));
+      const path = buildReceiptPath(groupId, ext);
 
       const { error: uploadError } = await supabase.storage
         .from(RECEIPTS_BUCKET)
         .upload(path, arrayBuffer, {
-          contentType: ext === "jpg" ? "image/jpeg" : `image/${ext}`,
+          contentType: receiptContentType(ext),
         });
 
       if (uploadError) {
@@ -246,7 +249,6 @@ export default function NewExpenseScreen() {
         paid_by: paidBy,
         description: description.trim(),
         amount: amountCents / 100,
-        // Only set once the "receipts" storage bucket exists — see report.
         ...(receiptPath ? { receipt_url: receiptPath } : {}),
       })
       .select("id")
@@ -279,7 +281,7 @@ export default function NewExpenseScreen() {
     if (receiptUploadFailed) {
       Alert.alert(
         "Expense added without receipt",
-        "The expense was saved, but the receipt photo couldn't be uploaded (receipt storage isn't set up yet)."
+        "The expense was saved, but the receipt photo couldn't be uploaded."
       );
     }
 

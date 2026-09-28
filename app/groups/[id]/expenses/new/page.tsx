@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient, getCurrentUser } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { getDisplayName } from '@/lib/displayName'
+import { isReceiptPathForGroup } from '@/lib/receipts'
 import ExpenseForm from './ExpenseForm'
 
 export default async function NewExpensePage({
@@ -63,6 +64,12 @@ export default async function NewExpensePage({
       throw new Error('Split totals do not match expense amount')
     }
 
+    // Uploaded by the form; only a path inside this group's folder is stored.
+    const receiptPath = (formData.get('receiptPath') as string | null) || null
+    if (receiptPath && !isReceiptPathForGroup(receiptPath, groupId)) {
+      throw new Error('Invalid receipt')
+    }
+
     const { data: expense, error: expenseError } = await supabase
       .from('expenses')
       .insert({
@@ -70,6 +77,7 @@ export default async function NewExpensePage({
         paid_by: paidBy,
         description,
         amount: amountCents / 100,
+        ...(receiptPath ? { receipt_url: receiptPath } : {}),
       })
       .select('id')
       .single()

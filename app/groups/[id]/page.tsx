@@ -4,6 +4,12 @@ import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { computeDetailedBalances, computeNetBalances, computeSettlements } from "@/lib/settlements";
 import { getDisplayName, nameForUserId } from "@/lib/displayName";
 import { formatMoney } from "@/lib/money";
+import {
+  collectReceiptPaths,
+  RECEIPT_SIGNED_URL_TTL_SECONDS,
+  RECEIPTS_BUCKET,
+  signedUrlsByPath,
+} from "@/lib/receipts";
 import RealtimeGroupListener from "./RealtimeGroupListener";
 import BalancesSection from "./BalancesSection";
 import CurrencySelector from "./CurrencySelector";
@@ -53,7 +59,7 @@ export default async function GroupDetailPage({
 
   const { data: expenses, error: expensesError } = await supabase
     .from("expenses")
-    .select("id, paid_by, amount, description, created_at")
+    .select("id, paid_by, amount, description, created_at, receipt_url")
     .eq("group_id", id)
     .order("created_at", { ascending: false });
 
@@ -89,6 +95,20 @@ export default async function GroupDetailPage({
       settlementsError,
       membersError,
     });
+  }
+
+  // The bucket is private: sign each receipt path for 60 minutes. A failure
+  // only hides the thumbnails.
+  const receiptPaths = collectReceiptPaths(expenses ?? []);
+  let receiptUrls: Record<string, string> = {};
+  if (receiptPaths.length > 0) {
+    const { data: signed, error: signError } = await supabase.storage
+      .from(RECEIPTS_BUCKET)
+      .createSignedUrls(receiptPaths, RECEIPT_SIGNED_URL_TTL_SECONDS);
+    if (signError) {
+      console.error("Receipt signed URL error:", signError);
+    }
+    receiptUrls = signedUrlsByPath(signed);
   }
 
   const nameById: Record<string, string> = {};
@@ -227,23 +247,56 @@ export default async function GroupDetailPage({
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
-              {(expenses ?? []).map((e) => (
-                <li
-                  key={e.id}
-                  className="flex items-center justify-between text-sm"
-                >
-                  <span className="text-text">
-                    {e.description}
-                    <span className="text-text-muted">
-                      {" "}
-                      — paid by {nameForUserId(e.paid_by, nameById)}
+              {(expenses ?? []).map((e) => {
+                const receiptUrl = e.receipt_url ? receiptUrls[e.receipt_url] : undefined;
+                return (
+                  <li
+                    key={e.id}
+                    className="flex items-center justify-between gap-3 text-sm"
+                  >
+                    <span className="flex items-center gap-2 text-text">
+                      {receiptUrl && (
+                        <a
+                          href={receiptUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Open receipt full-size"
+                          aria-label={`Receipt for ${e.description}`}
+                          className="shrink-0"
+                        >
+                          {/* Signed URLs change on every load; next/image would need the storage host configured. */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={receiptUrl}
+                            alt=""
+                            className="h-10 w-10 rounded border border-border bg-surface-hover object-cover hover:opacity-80"
+                          />
+                        </a>
+                      )}
+                      <span>
+                        {e.description}
+                        <span className="text-text-muted">
+                          {" "}
+                          — paid by {nameForUserId(e.paid_by, nameById)}
+                        </span>
+                        {receiptUrl && (
+                          <a
+                            href={receiptUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ml-2 text-xs font-medium text-link hover:underline"
+                          >
+                            Receipt
+                          </a>
+                        )}
+                      </span>
                     </span>
-                  </span>
-                  <span className="font-medium text-text">
-                    {formatMoney(Number(e.amount), group.currency)}
-                  </span>
-                </li>
-              ))}
+                    <span className="shrink-0 font-medium text-text">
+                      {formatMoney(Number(e.amount), group.currency)}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
           <Link

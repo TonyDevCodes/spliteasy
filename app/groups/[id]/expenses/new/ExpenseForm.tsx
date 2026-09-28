@@ -1,9 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatMoney, getCurrencySymbol } from '@/lib/money'
+import { createClient } from '@/lib/supabase/client'
+import {
+  buildReceiptPath,
+  receiptContentType,
+  receiptExtension,
+  RECEIPTS_BUCKET,
+  validateReceiptFile,
+} from '@/lib/receipts'
 
 type Member = {
   id: string
@@ -28,6 +36,45 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
   const [customSplits, setCustomSplits] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [receiptFile, setReceiptFile] = useState<File | null>(null)
+  const receiptPreview = useMemo(
+    () => (receiptFile ? URL.createObjectURL(receiptFile) : null),
+    [receiptFile]
+  )
+
+  useEffect(() => {
+    return () => {
+      if (receiptPreview) URL.revokeObjectURL(receiptPreview)
+    }
+  }, [receiptPreview])
+
+  function handleReceiptChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null
+    e.target.value = ''
+    if (!file) return
+    const problem = validateReceiptFile(file)
+    if (problem) {
+      setError(problem)
+      return
+    }
+    setError(null)
+    setReceiptFile(file)
+  }
+
+  // Same path format as the mobile app: <group id>/<timestamp>.<ext>.
+  async function uploadReceipt(file: File): Promise<string> {
+    const ext = receiptExtension(file.name, file.type)
+    const path = buildReceiptPath(groupId, ext)
+    const { error: uploadError } = await createClient()
+      .storage.from(RECEIPTS_BUCKET)
+      .upload(path, file, { contentType: receiptContentType(ext) })
+    if (uploadError) {
+      throw new Error(
+        `The receipt could not be uploaded (${uploadError.message}). Remove it to save the expense without a receipt.`
+      )
+    }
+    return path
+  }
 
   const amountCents = Math.round(parseFloat(amount || '0') * 100)
 
@@ -78,6 +125,9 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
 
     setSubmitting(true)
     try {
+      if (receiptFile) {
+        formData.set('receiptPath', await uploadReceipt(receiptFile))
+      }
       await addExpenseAction(formData)
     } catch (err: any) {
       setError(err.message || 'Something went wrong')
@@ -185,6 +235,39 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
           </p>
         </div>
       )}
+
+      <div>
+        <span className="block text-sm font-medium mb-1">Receipt (optional)</span>
+        {receiptFile && receiptPreview ? (
+          <div className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={receiptPreview}
+              alt="Receipt preview"
+              className="h-16 w-16 rounded border border-border bg-surface-hover object-cover"
+            />
+            <span className="flex-1 truncate text-sm text-text-muted">{receiptFile.name}</span>
+            <button
+              type="button"
+              onClick={() => setReceiptFile(null)}
+              disabled={submitting}
+              className="rounded-md border border-border px-3 py-1.5 text-sm text-text hover:bg-surface-hover"
+            >
+              Remove
+            </button>
+          </div>
+        ) : (
+          <label className="inline-block cursor-pointer rounded-md border border-border px-3 py-1.5 text-sm text-text hover:bg-surface-hover focus-within:ring-2 focus-within:ring-link">
+            Attach receipt
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleReceiptChange}
+              className="sr-only"
+            />
+          </label>
+        )}
+      </div>
 
       <div className="flex items-center gap-3">
         <button
