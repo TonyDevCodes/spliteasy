@@ -182,21 +182,22 @@ Open http://localhost:3000.
 
 ```powershell
 cd mobile
-npx expo start
+npm start
 ```
 
 Scan the QR code with Expo Go on your phone (same Wi-Fi network as the PC).
 
-**Android emulator tip:** if Expo Go spins forever or shows "Something went wrong", start Metro on localhost,
-forward the port with adb, and force Node to bind IPv4 (by default Metro may listen only on IPv6 `::1`,
-which `adb reverse` cannot reach):
+**Android emulator:** start the emulator, then run Metro on localhost and forward the port with adb:
 
 ```powershell
-$env:NODE_OPTIONS = "--dns-result-order=ipv4first"
-npx expo start --localhost --port 8081
+cd mobile
+npm run emulator
 adb reverse tcp:8081 tcp:8081
 adb shell am start -a android.intent.action.VIEW -d exp://127.0.0.1:8081
 ```
+
+The start scripts set `NODE_OPTIONS=--dns-result-order=ipv4first` (via cross-env) because otherwise Metro may
+listen only on IPv6 `::1`, which `adb reverse` (IPv4 `127.0.0.1`) cannot reach.
 
 ## Known limitations
 
