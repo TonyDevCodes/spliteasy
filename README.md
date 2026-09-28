@@ -1,36 +1,203 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SplitEasy
 
-## Getting Started
+Split shared expenses with friends, roommates and travel groups, on the web and on your phone.
+SplitEasy keeps track of who paid what, shows everyone's balance in real time, and reduces a
+tangle of debts to the smallest number of payments.
 
-First, run the development server:
+**Live demo:** https://spliteasy-beta-five.vercel.app
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+<p>
+  <img src="docs/screenshots/mobile-groups.png" width="230" alt="Groups list" />
+  <img src="docs/screenshots/mobile-balances-detailed.png" width="230" alt="Balances, detailed view" />
+  <img src="docs/screenshots/mobile-balances-simplified.png" width="230" alt="Balances, simplified debts" />
+</p>
+
+## Features
+
+- **Groups and invites** – create a group and invite people with a shareable invite link.
+- **Equal or custom splits** – split an expense evenly or enter an exact amount per member.
+- **Balances** – see what you owe and are owed, per person and in total.
+- **Simplify debts** – switch between the detailed view and a minimal set of payments.
+- **Settle up** – record a payment with "Mark as settled"; balances update immediately.
+- **Realtime** – changes made by other members appear without refreshing (Supabase Realtime).
+- **Receipts** – attach a photo of the receipt from the camera or gallery (mobile, Supabase Storage).
+- **Multi-currency** – every group has its own currency (EUR, USD, GBP, CHF, ALL, TRY, PLN, SEK, NOK, DKK).
+- **Dark mode** – System, Light or Dark theme on web and mobile.
+- **CSV and PDF export** – export a group's expenses, balances and settlements.
+- **In-app notifications** – new members, expenses, settlements and currency changes, with unread badge.
+- **Safe account deletion** – when a user is deleted, the group history stays intact: their expenses and
+  splits remain and are shown as "Deleted user", and another member is promoted to group admin if needed.
+
+## Screenshots
+
+| Expenses | Notifications | Profile and theme | Dark mode |
+| --- | --- | --- | --- |
+| <img src="docs/screenshots/mobile-expenses.png" width="200" alt="Expenses tab" /> | <img src="docs/screenshots/mobile-notifications.png" width="200" alt="Notifications" /> | <img src="docs/screenshots/mobile-profile-theme.png" width="200" alt="Profile with theme setting" /> | <img src="docs/screenshots/mobile-dark-mode.png" width="200" alt="Balances in dark mode" /> |
+
+| Web: sign in | Web: sign up |
+| --- | --- |
+| <img src="docs/screenshots/web-login.png" width="300" alt="Web sign in" /> | <img src="docs/screenshots/web-signup.png" width="300" alt="Web sign up" /> |
+
+## Tech stack
+
+| Layer | Technology |
+| --- | --- |
+| Web | Next.js 16 (App Router, Server Components), React 19, Tailwind CSS 4, deployed on Vercel |
+| Mobile | React Native with Expo SDK 57 and Expo Router |
+| Backend | Supabase: Postgres with Row Level Security, Auth, Realtime, Storage |
+| Exports | jsPDF + jspdf-autotable (web), expo-print + expo-sharing (mobile) |
+| Tests | Vitest |
+| Language | TypeScript everywhere |
+
+## Architecture
+
+Both clients talk directly to Supabase with the user's own session. There is no custom API server:
+authorization is enforced inside the database with Row Level Security, and side effects such as
+notifications are handled by Postgres triggers.
+
+```mermaid
+flowchart LR
+    web["Next.js web app<br/>(Vercel)"]
+    mobile["Expo mobile app<br/>(Android / iOS)"]
+    subgraph Supabase
+        auth["Auth"]
+        db[("Postgres<br/>RLS policies + triggers")]
+        rt["Realtime"]
+        storage["Storage<br/>(receipts)"]
+    end
+    web --> auth
+    mobile --> auth
+    web -- "queries as the user" --> db
+    mobile -- "queries as the user" --> db
+    web -. "subscribe" .-> rt
+    mobile -. "subscribe" .-> rt
+    mobile -- "receipt photos" --> storage
+    db -- "row changes" --> rt
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Shared business logic (balances, debt simplification, money formatting, display names, exports) lives
+in `lib/` and is unit tested; the mobile app keeps equivalent modules in `mobile/lib/`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+app/                  Next.js routes (groups, invites, login, notifications, profile)
+lib/                  Shared logic + Vitest tests
+mobile/               Expo app (Expo Router screens in mobile/app, logic in mobile/lib)
+supabase/migrations/  Database schema, RLS policies, functions and triggers
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Security
 
-## Learn More
+- **Row Level Security on every table.** Profiles, groups, group members, invites, expenses, expense splits,
+  settlements and notifications each have explicit select/insert/update/delete policies. Access is scoped
+  to group membership through the `is_group_member()` helper.
+- **Admin-only group updates.** Only group admins (`is_group_admin()`) can change group settings such as
+  the name or currency. If the last admin leaves or is deleted, the
+  `promote_admin_after_member_removed` trigger promotes another member.
+- **Security-definer functions with a narrow scope.** Triggers that create notifications or profiles, and the
+  invite lookup by token, run as `security definer` so clients never need write access to those tables.
+  Notifications can only be created by triggers; users can only read and mark their own as read.
+- **User deletion keeps data consistent.** Foreign keys to users use `ON DELETE SET NULL`, so deleting an
+  account never cascades away other people's expenses or settlements.
+- **No secrets in the clients.** The apps only use the public anon key; the service role key is never
+  bundled or committed.
 
-To learn more about Next.js, take a look at the following resources:
+## Testing
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm test
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Runs the Vitest suite: 71 tests in 7 files covering balance calculation, debt simplification, money
+formatting, display names (including the "Deleted user" fallback), CSV/PDF export content, notifications
+and theme handling.
 
-## Deploy on Vercel
+Type checks and the production build:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run build                        # Next.js production build (includes type checking)
+cd mobile && npx tsc --noEmit        # Mobile type check
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Local setup (fresh Windows PC)
+
+**Prerequisites**
+
+- [Node.js](https://nodejs.org) 22 LTS or newer (developed on Node 24) and Git.
+- A [Supabase](https://supabase.com) project.
+- For mobile: [Android Studio](https://developer.android.com/studio) with an emulator, or a phone with
+  [Expo Go](https://expo.dev/go) (a version that supports SDK 57).
+
+**1. Clone and install**
+
+```powershell
+git clone https://github.com/TonyDevCodes/spliteasy.git
+cd spliteasy
+npm install
+cd mobile
+npm install
+cd ..
+```
+
+**2. Database**
+
+Apply the SQL files in `supabase/migrations/` in order (Supabase CLI `npx supabase db push`, or paste them
+into the SQL Editor). In the Supabase dashboard, create a Storage bucket named `receipts` and enable
+Realtime for the `expenses`, `expense_splits`, `settlements` and `group_members` tables (the migrations
+already add `groups` and `notifications`).
+
+**3. Environment variables**
+
+Web – create `.env.local` in the repo root:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_SITE_URL=
+```
+
+Mobile – create `mobile/.env`:
+
+```
+EXPO_PUBLIC_SUPABASE_URL=
+EXPO_PUBLIC_SUPABASE_ANON_KEY=
+EXPO_PUBLIC_SITE_URL=
+```
+
+Use the project URL and anon key from Supabase (Project Settings → API). Never put the service role key in
+these files.
+
+**4. Run the web app**
+
+```powershell
+npm run dev
+```
+
+Open http://localhost:3000.
+
+**5. Run the mobile app with Expo Go**
+
+```powershell
+cd mobile
+npx expo start
+```
+
+Scan the QR code with Expo Go on your phone (same Wi-Fi network as the PC).
+
+**Android emulator tip:** if Expo Go spins forever or shows "Something went wrong", start Metro on localhost,
+forward the port with adb, and force Node to bind IPv4 (by default Metro may listen only on IPv6 `::1`,
+which `adb reverse` cannot reach):
+
+```powershell
+$env:NODE_OPTIONS = "--dns-result-order=ipv4first"
+npx expo start --localhost --port 8081
+adb reverse tcp:8081 tcp:8081
+adb shell am start -a android.intent.action.VIEW -d exp://127.0.0.1:8081
+```
+
+## Known limitations
+
+- **Sign-up email redirect.** Supabase does not always honor `emailRedirectTo` on sign-up confirmation
+  emails; a fix is pending upstream (Supabase PR #2629). Until then the confirmation link may open the
+  Site URL configured in the Supabase dashboard instead of the app's callback.
+- **Push notifications** require an EAS development build; Expo Go cannot receive remote push
+  notifications. Notifications are currently in-app only.
