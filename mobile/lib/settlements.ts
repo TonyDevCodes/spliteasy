@@ -1,12 +1,36 @@
+import { userKey } from "./displayName";
+
 export type BalanceLine = {
   from: string;
   to: string;
   amount: number;
 };
 
-type ExpenseInput = { id: string; paid_by: string };
-type SplitInput = { expense_id: string; user_id: string; amount_owed: number };
-type SettlementInput = { from_user: string; to_user: string; amount: number };
+// User ids are NULL when that user was deleted; userKey() groups those
+// references under DELETED_USER_KEY so the remaining balances stay correct.
+type ExpenseInput = { id: string; paid_by: string | null };
+type SplitInput = { expense_id: string; user_id: string | null; amount_owed: number | string };
+type SettlementInput = { from_user: string | null; to_user: string | null; amount: number | string };
+
+/** Net balance per user: positive = is owed money, negative = owes money. */
+export function computeNetBalances(
+  expenses: (ExpenseInput & { amount: number | string })[],
+  splits: SplitInput[],
+  settlements: SettlementInput[]
+): Record<string, number> {
+  const net: Record<string, number> = {};
+  const addTo = (id: string | null, amount: number) => {
+    const key = userKey(id);
+    net[key] = (net[key] ?? 0) + amount;
+  };
+  expenses.forEach((e) => addTo(e.paid_by, Number(e.amount)));
+  splits.forEach((s) => addTo(s.user_id, -Number(s.amount_owed)));
+  settlements.forEach((s) => {
+    addTo(s.from_user, Number(s.amount));
+    addTo(s.to_user, -Number(s.amount));
+  });
+  return net;
+}
 
 /**
  * Direct per-pair debts derived straight from the ledger (expenses + splits,
@@ -21,7 +45,7 @@ export function computeDetailedBalances(
 ): BalanceLine[] {
   const paidByById: Record<string, string> = {};
   expenses.forEach((e) => {
-    paidByById[e.id] = e.paid_by;
+    paidByById[e.id] = userKey(e.paid_by);
   });
 
   const owed: Record<string, number> = {};
@@ -34,11 +58,11 @@ export function computeDetailedBalances(
   splits.forEach((s) => {
     const payer = paidByById[s.expense_id];
     if (!payer) return;
-    add(s.user_id, payer, Number(s.amount_owed));
+    add(userKey(s.user_id), payer, Number(s.amount_owed));
   });
 
   settlements.forEach((s) => {
-    add(s.from_user, s.to_user, -Number(s.amount));
+    add(userKey(s.from_user), userKey(s.to_user), -Number(s.amount));
   });
 
   const lines: BalanceLine[] = [];

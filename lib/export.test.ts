@@ -137,6 +137,31 @@ describe("buildExpensesCsv", () => {
   });
 });
 
+describe("deleted users in exports", () => {
+  const deletedExpenses: ExportExpense[] = [
+    { id: "d1", paid_by: null, amount: 30, description: "Taxi", created_at: "2026-09-20T12:00:00Z" },
+  ];
+  const deletedSplits: ExportSplit[] = [
+    { expense_id: "d1", user_id: null, amount_owed: 10 },
+    { expense_id: "d1", user_id: "a", amount_owed: 20 },
+  ];
+
+  it("names the deleted payer and keeps their share in its own column", () => {
+    const rows = parseCsv(buildExpensesCsv(group, deletedExpenses, members, deletedSplits).slice(1));
+    expect(rows[0]).toEqual(["Date", "Description", "Amount", "Currency", "Paid by", "Anna", "bob.smith", "José", "Deleted user"]);
+    expect(rows[1]).toEqual(["2026-09-20", "Taxi", "30.00", "EUR", "Deleted user", "20.00", "0.00", "0.00", "10.00"]);
+  });
+
+  it("lists settlements with a deleted user by name", () => {
+    const csv = buildBalancesCsv(group, computeGroupBalances(deletedExpenses, deletedSplits, []), members, [
+      { from_user: "a", to_user: null, amount: 5, settled_at: "2026-09-21T12:00:00Z" },
+    ]);
+    const rows = parseCsv(csv.slice(1));
+    expect(rows).toContainEqual(["Detailed", "Anna", "Deleted user", "20.00", "EUR"]);
+    expect(rows).toContainEqual(["2026-09-21", "Anna", "Deleted user", "5.00", "EUR"]);
+  });
+});
+
 describe("escapeCsvText", () => {
   it("leaves plain text alone", () => {
     expect(escapeCsvText("Taxi")).toBe("Taxi");

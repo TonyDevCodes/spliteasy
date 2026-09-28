@@ -14,11 +14,12 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-rou
 import { supabase } from "../../../../lib/supabase";
 import {
   computeDetailedBalances,
+  computeNetBalances,
   computeSettlements,
   type BalanceLine,
 } from "../../../../lib/settlements";
 import { ErrorBoundary } from "../../../../lib/ErrorBoundary";
-import { getDisplayName } from "../../../../lib/displayName";
+import { getDisplayName, isDeletedUser, nameForUserId } from "../../../../lib/displayName";
 import { subscribeToTableChanges, uniqueChannelName } from "../../../../lib/realtime";
 import {
   buildBalancesCsv,
@@ -41,7 +42,7 @@ type Group = {
   name: string;
   created_at: string;
   currency: string;
-  created_by: string;
+  created_by: string | null;
 };
 
 type ProfileRow = {
@@ -52,6 +53,7 @@ type ProfileRow = {
 
 type MemberRow = {
   user_id: string;
+  role: string;
   profiles: ProfileRow | null;
 };
 
@@ -62,7 +64,7 @@ type Member = {
 
 type Expense = {
   id: string;
-  paid_by: string;
+  paid_by: string | null;
   amount: number;
   description: string;
   created_at: string;
@@ -70,13 +72,13 @@ type Expense = {
 
 type Split = {
   expense_id: string;
-  user_id: string;
+  user_id: string | null;
   amount_owed: number;
 };
 
 type Settlement = {
-  from_user: string;
-  to_user: string;
+  from_user: string | null;
+  to_user: string | null;
   amount: number;
   settled_at: string;
 };
@@ -109,6 +111,7 @@ export default function GroupDetailScreen() {
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [memberProfiles, setMemberProfiles] = useState<ProfileRow[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [splits, setSplits] = useState<Split[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
@@ -170,7 +173,7 @@ export default function GroupDetailScreen() {
     ] = await Promise.all([
       supabase
         .from("group_members")
-        .select("user_id, profiles(id, display_name, email)")
+        .select("user_id, role, profiles(id, display_name, email)")
         .eq("group_id", groupId)
         .returns<MemberRow[]>(),
       supabase
@@ -218,6 +221,10 @@ export default function GroupDetailScreen() {
       .map((m) => m.profiles)
       .filter((p): p is ProfileRow => p !== null);
     setMemberProfiles(profiles);
+    // Group settings (currency) are editable by group admins, matching the
+    // groups_update RLS policy.
+    const myRole = (memberRows ?? []).find((m) => m.user_id === user.id)?.role;
+    setIsAdmin(myRole === "admin" || myRole === "owner");
     setMembers(profiles.map((p) => ({ id: p.id, name: getDisplayName(p) })));
     setExpenses(expenseRows ?? []);
     setSplits(splitRows ?? []);
@@ -255,24 +262,10 @@ export default function GroupDetailScreen() {
     return map;
   }, [members]);
 
-  const simplifiedLines = useMemo<BalanceLine[]>(() => {
-    const net: Record<string, number> = {};
-
-    expenses.forEach((e) => {
-      net[e.paid_by] = (net[e.paid_by] ?? 0) + Number(e.amount);
-    });
-
-    splits.forEach((s) => {
-      net[s.user_id] = (net[s.user_id] ?? 0) - Number(s.amount_owed);
-    });
-
-    settlements.forEach((s) => {
-      net[s.from_user] = (net[s.from_user] ?? 0) + Number(s.amount);
-      net[s.to_user] = (net[s.to_user] ?? 0) - Number(s.amount);
-    });
-
-    return computeSettlements(net);
-  }, [expenses, splits, settlements]);
+  const simplifiedLines = useMemo<BalanceLine[]>(
+    () => computeSettlements(computeNetBalances(expenses, splits, settlements)),
+    [expenses, splits, settlements]
+  );
 
   const detailedLines = useMemo<BalanceLine[]>(
     () => computeDetailedBalances(expenses, splits, settlements),
@@ -513,7 +506,7 @@ export default function GroupDetailScreen() {
               ListHeaderComponent={
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Currency</Text>
-                  {group && group.created_by === currentUserId ? (
+                  {group && isAdmin ? (
                     <>
                       <View style={styles.chipRow}>
                         {SUPPORTED_CURRENCIES.map((c) => (
@@ -621,10 +614,12 @@ export default function GroupDetailScreen() {
                 return (
                   <View style={styles.balanceRow}>
                     <Text style={styles.balanceRowText}>
-                      {nameById[item.from] ?? "Someone"} owes{" "}
-                      {nameById[item.to] ?? "someone"}:{" "}
+                      {nameForUserId(item.from, nameById)} owes{" "}
+                      {nameForUserId(item.to, nameById)}:{" "}
                       {formatMoney(item.amount, currency)}
                     </Text>
+                    {/* A settlement needs two existing users. */}
+                    {!isDeletedUser(item.from) && !isDeletedUser(item.to) && (
                     <TouchableOpacity
                       style={styles.settleButton}
                       onPress={() => handleSettle(item)}
@@ -636,6 +631,7 @@ export default function GroupDetailScreen() {
                         <Text style={styles.settleButtonText}>Mark as settled</Text>
                       )}
                     </TouchableOpacity>
+                    )}
                   </View>
                 );
               }}
@@ -656,7 +652,7 @@ export default function GroupDetailScreen() {
                   <View style={styles.expenseRowLeft}>
                     <Text style={styles.expenseDescription}>{item.description}</Text>
                     <Text style={styles.mutedText}>
-                      paid by {nameById[item.paid_by] ?? "someone"} ·{" "}
+                      paid by {nameForUserId(item.paid_by, nameById)} ·{" "}
                       {new Date(item.created_at).toLocaleDateString()}
                     </Text>
                   </View>

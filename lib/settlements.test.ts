@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { computeDetailedBalances, computeSettlements } from "./settlements";
+import { computeDetailedBalances, computeNetBalances, computeSettlements } from "./settlements";
+import { DELETED_USER_KEY } from "./displayName";
 
 type RawExpense = { id: string; paid_by: string; amount: number };
 type RawSplit = { expense_id: string; user_id: string; amount_owed: number };
@@ -127,5 +128,34 @@ describe("empty group", () => {
 
   it("computeDetailedBalances returns an empty result and does not crash", () => {
     expect(computeDetailedBalances([], [], [])).toEqual([]);
+  });
+});
+
+describe("deleted users (null references)", () => {
+  // test2 paid 60 (split with mobiletest), then the deleted user paid 60
+  // (split with test3), and test3 settled 10 with the deleted user.
+  const expenses = [
+    { id: "e1", paid_by: "test2", amount: 60 },
+    { id: "e2", paid_by: null, amount: 60 },
+  ];
+  const splits = [
+    { expense_id: "e1", user_id: "test2", amount_owed: 30 },
+    { expense_id: "e1", user_id: "mobiletest", amount_owed: 30 },
+    { expense_id: "e2", user_id: null, amount_owed: 30 },
+    { expense_id: "e2", user_id: "test3", amount_owed: 30 },
+  ];
+  const settlements = [{ from_user: "test3", to_user: null, amount: 10 }];
+
+  it("keeps everyone else's balances unchanged", () => {
+    const net = computeNetBalances(expenses, splits, settlements);
+    expect(net).toEqual({ test2: 30, mobiletest: -30, [DELETED_USER_KEY]: 20, test3: -20 });
+    expect(Object.values(net).reduce((a, b) => a + b, 0)).toBeCloseTo(0, 2);
+  });
+
+  it("shows debts to a deleted user under one key", () => {
+    const detailed = computeDetailedBalances(expenses, splits, settlements);
+    expect(detailed).toContainEqual({ from: "mobiletest", to: "test2", amount: 30 });
+    expect(detailed).toContainEqual({ from: "test3", to: DELETED_USER_KEY, amount: 20 });
+    expect(detailed).toHaveLength(2);
   });
 });

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { BalanceLine } from "@/lib/settlements";
 import { formatMoney } from "@/lib/money";
+import { isDeletedUser, nameForUserId } from "@/lib/displayName";
 import { recordSettlement } from "./actions";
 
 type Props = {
@@ -73,10 +74,12 @@ export default function BalancesSection({
                   className="flex items-center justify-between gap-2 text-sm"
                 >
                   <span className="text-text">
-                    {nameById[line.from] ?? "Someone"} owes{" "}
-                    {nameById[line.to] ?? "someone"}:{" "}
+                    {nameForUserId(line.from, nameById)} owes{" "}
+                    {nameForUserId(line.to, nameById)}:{" "}
                     {formatMoney(line.amount, currency)}
                   </span>
+                  {/* A settlement needs two existing users. */}
+                  {!isDeletedUser(line.from) && !isDeletedUser(line.to) && (
                   <form action={recordSettlement}>
                     <input type="hidden" name="groupId" value={groupId} />
                     <input type="hidden" name="fromUser" value={line.from} />
@@ -93,6 +96,7 @@ export default function BalancesSection({
                       Mark as settled
                     </button>
                   </form>
+                  )}
                 </li>
               ))}
             </ul>

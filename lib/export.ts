@@ -1,7 +1,12 @@
 // Pure builders for the group export (CSV files and the PDF summary data).
 // mobile/lib/export.ts is an identical copy of this file.
-import { computeDetailedBalances, computeSettlements, type BalanceLine } from "./settlements";
-import { getDisplayName } from "./displayName";
+import {
+  computeDetailedBalances,
+  computeNetBalances,
+  computeSettlements,
+  type BalanceLine,
+} from "./settlements";
+import { DELETED_USER_KEY, getDisplayName, isDeletedUser, nameForUserId, userKey } from "./displayName";
 import { formatMoney } from "./money";
 
 export type ExportGroup = {
@@ -15,23 +20,24 @@ export type ExportMember = {
   email: string;
 };
 
+// User ids are null when that user was deleted (shown as "Deleted user").
 export type ExportSplit = {
   expense_id: string;
-  user_id: string;
+  user_id: string | null;
   amount_owed: number | string;
 };
 
 export type ExportExpense = {
   id: string;
-  paid_by: string;
+  paid_by: string | null;
   amount: number | string;
   description: string;
   created_at: string;
 };
 
 export type ExportSettlement = {
-  from_user: string;
-  to_user: string;
+  from_user: string | null;
+  to_user: string | null;
   amount: number | string;
   /** When the settlement was recorded; shown as the settlement's date. */
   settled_at?: string | null;
@@ -122,12 +128,12 @@ export function exportFileName(groupName: string, extension: "csv" | "pdf", now 
   return `spliteasy-${slugify(groupName)}-${toDateString(now)}.${extension}`;
 }
 
-function nameLookup(members: ExportMember[]): (id: string) => string {
+function nameLookup(members: ExportMember[]): (id: string | null) => string {
   const names: Record<string, string> = {};
   members.forEach((m) => {
     names[m.id] = getDisplayName(m);
   });
-  return (id) => names[id] ?? "Former member";
+  return (id) => nameForUserId(id, names);
 }
 
 export function computeGroupBalances(
@@ -135,24 +141,9 @@ export function computeGroupBalances(
   splits: ExportSplit[],
   settlements: ExportSettlement[]
 ): GroupBalances {
-  const net: Record<string, number> = {};
-  expenses.forEach((e) => {
-    net[e.paid_by] = (net[e.paid_by] ?? 0) + Number(e.amount);
-  });
-  splits.forEach((s) => {
-    net[s.user_id] = (net[s.user_id] ?? 0) - Number(s.amount_owed);
-  });
-  settlements.forEach((s) => {
-    net[s.from_user] = (net[s.from_user] ?? 0) + Number(s.amount);
-    net[s.to_user] = (net[s.to_user] ?? 0) - Number(s.amount);
-  });
-
-  const numericSplits = splits.map((s) => ({ ...s, amount_owed: Number(s.amount_owed) }));
-  const numericSettlements = settlements.map((s) => ({ ...s, amount: Number(s.amount) }));
-
   return {
-    detailed: computeDetailedBalances(expenses, numericSplits, numericSettlements),
-    simplified: computeSettlements(net),
+    detailed: computeDetailedBalances(expenses, splits, settlements),
+    simplified: computeSettlements(computeNetBalances(expenses, splits, settlements)),
   };
 }
 
@@ -167,7 +158,12 @@ export function buildExpensesCsv(
   splits: ExportSplit[]
 ): string {
   const nameOf = nameLookup(members);
-  const header = ["Date", "Description", "Amount", "Currency", "Paid by", ...members.map((m) => nameOf(m.id))];
+  // Shares of deleted users get their own column so each row still adds up.
+  const shareColumns = [
+    ...members.map((m) => m.id),
+    ...(splits.some((s) => isDeletedUser(s.user_id)) ? [DELETED_USER_KEY] : []),
+  ];
+  const header = ["Date", "Description", "Amount", "Currency", "Paid by", ...shareColumns.map((id) => nameOf(id))];
 
   if (expenses.length === 0) {
     return toCsv([header.map(escapeCsvText), [escapeCsvText(NO_EXPENSES_TEXT)]]);
@@ -176,7 +172,8 @@ export function buildExpensesCsv(
   const shares: Record<string, Record<string, number>> = {};
   splits.forEach((s) => {
     const byUser = (shares[s.expense_id] = shares[s.expense_id] ?? {});
-    byUser[s.user_id] = (byUser[s.user_id] ?? 0) + Number(s.amount_owed);
+    const key = userKey(s.user_id);
+    byUser[key] = (byUser[key] ?? 0) + Number(s.amount_owed);
   });
 
   const rows = expenses.map((e) => [
@@ -185,7 +182,7 @@ export function buildExpensesCsv(
     formatCsvAmount(Number(e.amount)),
     group.currency,
     escapeCsvText(nameOf(e.paid_by)),
-    ...members.map((m) => formatCsvAmount(shares[e.id]?.[m.id] ?? 0)),
+    ...shareColumns.map((id) => formatCsvAmount(shares[e.id]?.[id] ?? 0)),
   ]);
 
   return toCsv([header.map(escapeCsvText), ...rows]);

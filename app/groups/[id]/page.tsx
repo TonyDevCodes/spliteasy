@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
-import { computeDetailedBalances, computeSettlements } from "@/lib/settlements";
-import { getDisplayName } from "@/lib/displayName";
+import { computeDetailedBalances, computeNetBalances, computeSettlements } from "@/lib/settlements";
+import { getDisplayName, nameForUserId } from "@/lib/displayName";
 import { formatMoney } from "@/lib/money";
 import RealtimeGroupListener from "./RealtimeGroupListener";
 import BalancesSection from "./BalancesSection";
@@ -69,8 +69,13 @@ export default async function GroupDetailPage({
 
   const { data: members, error: membersError } = await supabase
     .from("group_members")
-    .select("user_id, profiles(id, display_name, email)")
+    .select("user_id, role, profiles(id, display_name, email)")
     .eq("group_id", id);
+
+  // Group settings (currency) are editable by group admins, matching the
+  // groups_update RLS policy.
+  const myRole = (members ?? []).find((m: any) => m.user_id === user.id)?.role;
+  const isAdmin = myRole === "admin" || myRole === "owner";
 
   const hasLoadError = Boolean(
     invitesError || expensesError || splitsError || settlementsError || membersError
@@ -88,25 +93,12 @@ export default async function GroupDetailPage({
 
   const nameById: Record<string, string> = {};
   (members ?? []).forEach((m: any) => {
-    nameById[m.profiles.id] = getDisplayName(m.profiles);
+    if (m.profiles) nameById[m.profiles.id] = getDisplayName(m.profiles);
   });
 
-  const net: Record<string, number> = {};
-
-  (expenses ?? []).forEach((e) => {
-    net[e.paid_by] = (net[e.paid_by] ?? 0) + Number(e.amount);
-  });
-
-  (splits ?? []).forEach((s: any) => {
-    net[s.user_id] = (net[s.user_id] ?? 0) - Number(s.amount_owed);
-  });
-
-  (settlements ?? []).forEach((s) => {
-    net[s.from_user] = (net[s.from_user] ?? 0) + Number(s.amount);
-    net[s.to_user] = (net[s.to_user] ?? 0) - Number(s.amount);
-  });
-
-  const simplifiedLines = computeSettlements(net);
+  const simplifiedLines = computeSettlements(
+    computeNetBalances(expenses ?? [], splits ?? [], settlements ?? [])
+  );
   const detailedLines = computeDetailedBalances(
     expenses ?? [],
     splits ?? [],
@@ -166,7 +158,7 @@ export default async function GroupDetailPage({
               key={group.currency}
               groupId={group.id}
               currency={group.currency}
-              editable={group.created_by === user.id}
+              editable={isAdmin}
             />
             <ExportMenu
               group={{ name: group.name, currency: group.currency }}
@@ -243,7 +235,7 @@ export default async function GroupDetailPage({
                     {e.description}
                     <span className="text-text-muted">
                       {" "}
-                      — paid by {nameById[e.paid_by] ?? "someone"}
+                      — paid by {nameForUserId(e.paid_by, nameById)}
                     </span>
                   </span>
                   <span className="font-medium text-text">

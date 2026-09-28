@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { getDisplayName, validateDisplayNameInput } from "./displayName";
+import {
+  DELETED_USER_KEY,
+  DELETED_USER_NAME,
+  getDisplayName,
+  isDeletedUser,
+  nameForUserId,
+  userKey,
+  validateDisplayNameInput,
+} from "./displayName";
 
 describe("getDisplayName", () => {
   it("uses the display name when present", () => {
@@ -52,5 +60,30 @@ describe("validateDisplayNameInput", () => {
   it("checks the length limit after trimming, not before", () => {
     const name = `  ${"a".repeat(40)}  `;
     expect(validateDisplayNameInput(name)).toEqual({ ok: true, value: "a".repeat(40) });
+  });
+});
+
+describe("deleted users", () => {
+  it("shows a missing profile as Deleted user", () => {
+    expect(DELETED_USER_NAME).toBe("Deleted user");
+    expect(getDisplayName(null)).toBe("Deleted user");
+    expect(getDisplayName(undefined)).toBe("Deleted user");
+  });
+
+  it("names user ids, with Deleted user for null references", () => {
+    const names = { u1: "Anna" };
+    expect(nameForUserId("u1", names)).toBe("Anna");
+    expect(nameForUserId(null, names)).toBe("Deleted user");
+    expect(nameForUserId(undefined, names)).toBe("Deleted user");
+    expect(nameForUserId(DELETED_USER_KEY, names)).toBe("Deleted user");
+    expect(nameForUserId("left-the-group", names)).toBe("Former member");
+  });
+
+  it("maps null ids to one balance key", () => {
+    expect(userKey(null)).toBe(DELETED_USER_KEY);
+    expect(userKey("u1")).toBe("u1");
+    expect(isDeletedUser(null)).toBe(true);
+    expect(isDeletedUser(DELETED_USER_KEY)).toBe(true);
+    expect(isDeletedUser("u1")).toBe(false);
   });
 });
