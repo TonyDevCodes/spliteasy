@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { buildWriteOffRow } from "@/lib/settlements";
 
 export async function createInvite(formData: FormData) {
   const groupId = formData.get("groupId") as string;
@@ -50,6 +51,32 @@ export async function recordSettlement(formData: FormData) {
 
   if (error) {
     console.error("Record settlement error:", error);
+  }
+
+  redirect(`/groups/${groupId}`);
+}
+
+// Closes a debt with a deleted user. The settlements_insert_write_off RLS
+// policy only accepts this from group admins.
+export async function recordWriteOff(formData: FormData) {
+  const groupId = formData.get("groupId") as string;
+  const fromUser = formData.get("fromUser") as string;
+  const toUser = formData.get("toUser") as string;
+  const amount = formData.get("amount") as string;
+
+  const supabase = await createClient();
+  const user = await getCurrentUser(supabase);
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { error } = await supabase
+    .from("settlements")
+    .insert(buildWriteOffRow(groupId, { from: fromUser, to: toUser, amount: parseFloat(amount) }));
+
+  if (error) {
+    console.error("Record write-off error:", error);
   }
 
   redirect(`/groups/${groupId}`);

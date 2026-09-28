@@ -1,4 +1,4 @@
-import { userKey } from "./displayName";
+import { isDeletedUser, userKey } from "./displayName";
 
 export type BalanceLine = {
   from: string;
@@ -10,7 +10,42 @@ export type BalanceLine = {
 // references under DELETED_USER_KEY so the remaining balances stay correct.
 type ExpenseInput = { id: string; paid_by: string | null };
 type SplitInput = { expense_id: string; user_id: string | null; amount_owed: number | string };
-type SettlementInput = { from_user: string | null; to_user: string | null; amount: number | string };
+// A write-off is stored like a settlement, so it cancels a debt the same way.
+type SettlementInput = {
+  from_user: string | null;
+  to_user: string | null;
+  amount: number | string;
+  kind?: SettlementKind | string | null;
+};
+
+/** 'payment' is a recorded payment; 'write_off' closes a debt with a deleted user. */
+export type SettlementKind = "payment" | "write_off";
+
+export const WRITE_OFF_LABEL = "Write off";
+export const WRITE_OFF_CONFIRM_TEXT = "This removes the debt with a deleted account. It can't be undone.";
+
+export function isWriteOff(settlement: { kind?: string | null }): boolean {
+  return settlement.kind === "write_off";
+}
+
+/**
+ * Only group admins can write off, and only a balance line with exactly one
+ * deleted side (matches the settlements_insert_write_off RLS policy).
+ */
+export function canWriteOff(line: BalanceLine, isAdmin: boolean): boolean {
+  return isAdmin && isDeletedUser(line.from) !== isDeletedUser(line.to);
+}
+
+/** The settlements row that closes a balance line with a deleted user. */
+export function buildWriteOffRow(groupId: string, line: BalanceLine) {
+  return {
+    group_id: groupId,
+    from_user: isDeletedUser(line.from) ? null : line.from,
+    to_user: isDeletedUser(line.to) ? null : line.to,
+    amount: Math.round(line.amount * 100) / 100,
+    kind: "write_off" as const,
+  };
+}
 
 /** Net balance per user: positive = is owed money, negative = owes money. */
 export function computeNetBalances(

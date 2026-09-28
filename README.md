@@ -27,6 +27,7 @@ tangle of debts to the smallest number of payments.
 - **In-app notifications** – new members, expenses, settlements and currency changes, with unread badge.
 - **Safe account deletion** – when a user is deleted, the group history stays intact: their expenses and
   splits remain and are shown as "Deleted user", and another member is promoted to group admin if needed.
+  A group admin can **write off** a debt with a deleted user so the group can still become fully settled.
 
 ## Screenshots
 
@@ -93,6 +94,9 @@ supabase/migrations/  Database schema, RLS policies, functions and triggers
 - **Admin-only group updates.** Only group admins (`is_group_admin()`) can change group settings such as
   the name or currency. If the last admin leaves or is deleted, the
   `promote_admin_after_member_removed` trigger promotes another member.
+- **Admin-only write-offs.** A write-off is a settlement with `kind = 'write_off'`. Only group admins may
+  insert one, and only for a debt with exactly one deleted side; regular members can only record payments
+  between two existing users.
 - **Security-definer functions with a narrow scope.** Triggers that create notifications or profiles, and the
   invite lookup by token, run as `security definer` so clients never need write access to those tables.
   Notifications can only be created by triggers; users can only read and mark their own as read.
@@ -107,9 +111,9 @@ supabase/migrations/  Database schema, RLS policies, functions and triggers
 npm test
 ```
 
-Runs the Vitest suite: 71 tests in 7 files covering balance calculation, debt simplification, money
-formatting, display names (including the "Deleted user" fallback), CSV/PDF export content, notifications
-and theme handling.
+Runs the Vitest suite: 80 tests in 7 files covering balance calculation, debt simplification, write-offs,
+money formatting, display names (including the "Deleted user" fallback), CSV/PDF export content,
+notifications and theme handling.
 
 Type checks and the production build:
 
@@ -141,9 +145,9 @@ cd ..
 **2. Database**
 
 Apply the SQL files in `supabase/migrations/` in order (Supabase CLI `npx supabase db push`, or paste them
-into the SQL Editor). In the Supabase dashboard, create a Storage bucket named `receipts` and enable
-Realtime for the `expenses`, `expense_splits`, `settlements` and `group_members` tables (the migrations
-already add `groups` and `notifications`).
+into the SQL Editor). The migrations create everything the apps need, including Realtime for every table the
+apps subscribe to and the private `receipts` Storage bucket with its upload policy, so no manual dashboard
+steps are required.
 
 **3. Environment variables**
 

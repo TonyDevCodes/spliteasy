@@ -23,6 +23,24 @@ describe("buildNotificationMessage", () => {
     ).toBe("Bob paid Anna £10.00 in Flat");
   });
 
+  it("describes a write-off of a deleted user's debt", () => {
+    expect(
+      buildNotificationMessage({
+        type: "settlement_added",
+        payload: { kind: "write_off", actor_name: "Tony", from_name: null as unknown as string, to_name: "Anna", amount: 30, currency: "EUR", group_name: "Trip" },
+      })
+    ).toBe("Tony wrote off Deleted user's €30.00 debt to Anna in Trip");
+  });
+
+  it("describes a write-off of a debt owed to a deleted user", () => {
+    expect(
+      buildNotificationMessage({
+        type: "settlement_added",
+        payload: { kind: "write_off", actor_name: "Tony", from_name: "Anna", amount: 30, currency: "EUR" },
+      })
+    ).toBe("Tony wrote off Anna's €30.00 debt to Deleted user");
+  });
+
   it("describes a new member", () => {
     expect(
       buildNotificationMessage({ type: "member_joined", payload: { member_name: "José", group_name: "Trip" } })

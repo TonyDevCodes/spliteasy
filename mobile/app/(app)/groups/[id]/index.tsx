@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -13,9 +14,13 @@ import {
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { supabase } from "../../../../lib/supabase";
 import {
+  buildWriteOffRow,
+  canWriteOff,
   computeDetailedBalances,
   computeNetBalances,
   computeSettlements,
+  WRITE_OFF_CONFIRM_TEXT,
+  WRITE_OFF_LABEL,
   type BalanceLine,
 } from "../../../../lib/settlements";
 import { ErrorBoundary } from "../../../../lib/ErrorBoundary";
@@ -81,6 +86,7 @@ type Settlement = {
   to_user: string | null;
   amount: number;
   settled_at: string;
+  kind: string;
 };
 
 type Invite = {
@@ -189,7 +195,7 @@ export default function GroupDetailScreen() {
         .returns<Split[]>(),
       supabase
         .from("settlements")
-        .select("from_user, to_user, amount, settled_at")
+        .select("from_user, to_user, amount, settled_at, kind")
         .eq("group_id", groupId)
         .returns<Settlement[]>(),
       supabase
@@ -222,7 +228,7 @@ export default function GroupDetailScreen() {
       .filter((p): p is ProfileRow => p !== null);
     setMemberProfiles(profiles);
     // Group settings (currency) are editable by group admins, matching the
-    // groups_update RLS policy.
+    // groups_update RLS policy. Write-offs are admin-only as well.
     const myRole = (memberRows ?? []).find((m) => m.user_id === user.id)?.role;
     setIsAdmin(myRole === "admin" || myRole === "owner");
     setMembers(profiles.map((p) => ({ id: p.id, name: getDisplayName(p) })));
@@ -310,6 +316,32 @@ export default function GroupDetailScreen() {
     if (settleError) {
       console.error("Record settlement error:", settleError);
       setError("Something went wrong recording the settlement.");
+    } else {
+      await loadGroupData(id);
+    }
+
+    setSettlingKey(null);
+  }
+
+  // Closes a debt with a deleted user. The settlements_insert_write_off RLS
+  // policy only accepts this from group admins.
+  function confirmWriteOff(line: BalanceLine) {
+    Alert.alert(WRITE_OFF_LABEL, WRITE_OFF_CONFIRM_TEXT, [
+      { text: "Cancel", style: "cancel" },
+      { text: WRITE_OFF_LABEL, style: "destructive", onPress: () => handleWriteOff(line) },
+    ]);
+  }
+
+  async function handleWriteOff(line: BalanceLine) {
+    if (!id) return;
+    const key = `${line.from}-${line.to}`;
+    setSettlingKey(key);
+
+    const { error: writeOffError } = await supabase.from("settlements").insert(buildWriteOffRow(id, line));
+
+    if (writeOffError) {
+      console.error("Record write-off error:", writeOffError);
+      setError("Something went wrong writing off the debt.");
     } else {
       await loadGroupData(id);
     }
@@ -629,6 +661,20 @@ export default function GroupDetailScreen() {
                         <ActivityIndicator size="small" color={colors.text} />
                       ) : (
                         <Text style={styles.settleButtonText}>Mark as settled</Text>
+                      )}
+                    </TouchableOpacity>
+                    )}
+                    {/* Only admins can close a debt with a deleted user. */}
+                    {canWriteOff(item, isAdmin) && (
+                    <TouchableOpacity
+                      style={styles.settleButton}
+                      onPress={() => confirmWriteOff(item)}
+                      disabled={settlingKey === key}
+                    >
+                      {settlingKey === key ? (
+                        <ActivityIndicator size="small" color={colors.text} />
+                      ) : (
+                        <Text style={styles.settleButtonText}>{WRITE_OFF_LABEL}</Text>
                       )}
                     </TouchableOpacity>
                     )}

@@ -4,6 +4,7 @@ import {
   computeDetailedBalances,
   computeNetBalances,
   computeSettlements,
+  isWriteOff,
   type BalanceLine,
 } from "./settlements";
 import { DELETED_USER_KEY, getDisplayName, isDeletedUser, nameForUserId, userKey } from "./displayName";
@@ -41,6 +42,8 @@ export type ExportSettlement = {
   amount: number | string;
   /** When the settlement was recorded; shown as the settlement's date. */
   settled_at?: string | null;
+  /** 'payment' (default) or 'write_off' (a debt with a deleted user closed by an admin). */
+  kind?: string | null;
 };
 
 export type GroupBalances = {
@@ -69,6 +72,12 @@ export const NO_EXPENSES_TEXT = "No expenses";
 export const SETTLED_UP_TEXT = "All settled up";
 export const NO_SETTLEMENTS_TEXT = "No settlements";
 export const RECONCILIATION_NOTE = "Balances = expenses minus settlements";
+export const PAYMENT_LABEL = "Payment";
+export const WRITE_OFF_EXPORT_LABEL = "Write-off";
+
+function settlementTypeLabel(settlement: ExportSettlement): string {
+  return isWriteOff(settlement) ? WRITE_OFF_EXPORT_LABEL : PAYMENT_LABEL;
+}
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
@@ -190,7 +199,8 @@ export function buildExpensesCsv(
 
 /**
  * Current balances: every Detailed line, then the Simplified settlements,
- * then the settlements already recorded (Date, From, To, Amount, Currency).
+ * then the settlements already recorded (Date, From, To, Amount, Currency,
+ * Type: Payment or Write-off).
  */
 export function buildBalancesCsv(
   group: ExportGroup,
@@ -216,6 +226,7 @@ export function buildBalancesCsv(
     escapeCsvText(nameOf(st.to_user)),
     formatCsvAmount(Number(st.amount)),
     group.currency,
+    settlementTypeLabel(st),
   ]);
 
   return toCsv([
@@ -224,7 +235,7 @@ export function buildBalancesCsv(
     ...section("Simplified", balances.simplified),
     [],
     ["Settlements"],
-    ["Date", "From", "To", "Amount", "Currency"],
+    ["Date", "From", "To", "Amount", "Currency", "Type"],
     ...(recorded.length ? recorded : [[escapeCsvText(NO_SETTLEMENTS_TEXT)]]),
   ]);
 }
@@ -272,14 +283,15 @@ export function buildGroupSummary(
       ? expenses.map((e) => [localDay(e.created_at), e.description, nameOf(e.paid_by), money(Number(e.amount))])
       : [[NO_EXPENSES_TEXT, "", "", ""]],
     reconciliationNote: RECONCILIATION_NOTE,
-    settlementColumns: ["Date", "From", "To", "Amount"],
+    settlementColumns: ["Date", "From", "To", "Amount", "Type"],
     settlementRows: settlements.length
       ? newestSettlementsFirst(settlements).map((st) => [
           localDay(st.settled_at),
           nameOf(st.from_user),
           nameOf(st.to_user),
           money(Number(st.amount)),
+          settlementTypeLabel(st),
         ])
-      : [[NO_SETTLEMENTS_TEXT, "", "", ""]],
+      : [[NO_SETTLEMENTS_TEXT, "", "", "", ""]],
   };
 }

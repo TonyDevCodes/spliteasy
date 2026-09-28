@@ -1,10 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import type { BalanceLine } from "@/lib/settlements";
+import {
+  canWriteOff,
+  WRITE_OFF_CONFIRM_TEXT,
+  WRITE_OFF_LABEL,
+  type BalanceLine,
+} from "@/lib/settlements";
 import { formatMoney } from "@/lib/money";
 import { isDeletedUser, nameForUserId } from "@/lib/displayName";
-import { recordSettlement } from "./actions";
+import { recordSettlement, recordWriteOff } from "./actions";
 
 type Props = {
   groupId: string;
@@ -13,6 +18,7 @@ type Props = {
   simplifiedLines: BalanceLine[];
   nameById: Record<string, string>;
   currency: string;
+  isAdmin: boolean;
 };
 
 export default function BalancesSection({
@@ -22,6 +28,7 @@ export default function BalancesSection({
   simplifiedLines,
   nameById,
   currency,
+  isAdmin,
 }: Props) {
   const [view, setView] = useState<"detailed" | "simplified">("detailed");
   const lines = view === "detailed" ? detailedLines : simplifiedLines;
@@ -94,6 +101,32 @@ export default function BalancesSection({
                       className="whitespace-nowrap rounded-md border border-border px-2 py-1 text-xs font-medium text-text hover:bg-surface-hover"
                     >
                       Mark as settled
+                    </button>
+                  </form>
+                  )}
+                  {/* Only admins can close a debt with a deleted user. */}
+                  {canWriteOff(line, isAdmin) && (
+                  <form
+                    action={recordWriteOff}
+                    onSubmit={(event) => {
+                      if (!window.confirm(WRITE_OFF_CONFIRM_TEXT)) {
+                        event.preventDefault();
+                      }
+                    }}
+                  >
+                    <input type="hidden" name="groupId" value={groupId} />
+                    <input type="hidden" name="fromUser" value={line.from} />
+                    <input type="hidden" name="toUser" value={line.to} />
+                    <input
+                      type="hidden"
+                      name="amount"
+                      value={line.amount.toFixed(2)}
+                    />
+                    <button
+                      type="submit"
+                      className="whitespace-nowrap rounded-md border border-border px-2 py-1 text-xs font-medium text-text hover:bg-surface-hover"
+                    >
+                      {WRITE_OFF_LABEL}
                     </button>
                   </form>
                   )}

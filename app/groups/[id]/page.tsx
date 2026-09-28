@@ -64,7 +64,7 @@ export default async function GroupDetailPage({
 
   const { data: settlements, error: settlementsError } = await supabase
     .from("settlements")
-    .select("from_user, to_user, amount, settled_at")
+    .select("from_user, to_user, amount, settled_at, kind")
     .eq("group_id", id);
 
   const { data: members, error: membersError } = await supabase
@@ -73,7 +73,7 @@ export default async function GroupDetailPage({
     .eq("group_id", id);
 
   // Group settings (currency) are editable by group admins, matching the
-  // groups_update RLS policy.
+  // groups_update RLS policy. Write-offs are admin-only as well.
   const myRole = (members ?? []).find((m: any) => m.user_id === user.id)?.role;
   const isAdmin = myRole === "admin" || myRole === "owner";
 
@@ -214,6 +214,7 @@ export default async function GroupDetailPage({
           simplifiedLines={simplifiedLines}
           nameById={nameById}
           currency={group.currency}
+          isAdmin={isAdmin}
         />
 
         <div className="flex flex-col gap-2 border-t border-border pt-4">

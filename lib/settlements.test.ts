@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { computeDetailedBalances, computeNetBalances, computeSettlements } from "./settlements";
+import {
+  buildWriteOffRow,
+  canWriteOff,
+  computeDetailedBalances,
+  computeNetBalances,
+  computeSettlements,
+  type BalanceLine,
+} from "./settlements";
 import { DELETED_USER_KEY } from "./displayName";
 
 type RawExpense = { id: string; paid_by: string; amount: number };
@@ -157,5 +164,89 @@ describe("deleted users (null references)", () => {
     expect(detailed).toContainEqual({ from: "mobiletest", to: "test2", amount: 30 });
     expect(detailed).toContainEqual({ from: "test3", to: DELETED_USER_KEY, amount: 20 });
     expect(detailed).toHaveLength(2);
+  });
+});
+
+describe("write-offs of debts with deleted users", () => {
+  // A deleted user paid 60 for a and b; b paid 90 for a (30) and the deleted user (60).
+  // Lines: a owes deleted 30, deleted owes b 30, a owes b 30.
+  const expenses = [
+    { id: "e1", paid_by: null, amount: 60 },
+    { id: "e2", paid_by: "b", amount: 90 },
+  ];
+  const splits = [
+    { expense_id: "e1", user_id: "a", amount_owed: 30 },
+    { expense_id: "e1", user_id: "b", amount_owed: 30 },
+    { expense_id: "e2", user_id: "a", amount_owed: 30 },
+    { expense_id: "e2", user_id: null, amount_owed: 60 },
+  ];
+
+  function linesWith(settlements: { from_user: string | null; to_user: string | null; amount: number; kind?: string }[]) {
+    return {
+      detailed: computeDetailedBalances(expenses, splits, settlements),
+      simplified: computeSettlements(computeNetBalances(expenses, splits, settlements)),
+    };
+  }
+
+  function withDeleted(lines: BalanceLine[]) {
+    return lines.filter((l) => l.from === DELETED_USER_KEY || l.to === DELETED_USER_KEY);
+  }
+
+  it("closes a debt the deleted user owed", () => {
+    const before = linesWith([]);
+    const line = before.detailed.find((l) => l.from === DELETED_USER_KEY)!;
+    expect(line).toEqual({ from: DELETED_USER_KEY, to: "b", amount: 30 });
+
+    const row = buildWriteOffRow("g1", line);
+    expect(row).toEqual({ group_id: "g1", from_user: null, to_user: "b", amount: 30, kind: "write_off" });
+
+    const after = linesWith([row]);
+    expect(after.detailed.find((l) => l.from === DELETED_USER_KEY)).toBeUndefined();
+    expect(after.detailed).toContainEqual({ from: "a", to: DELETED_USER_KEY, amount: 30 });
+    expect(after.detailed).toContainEqual({ from: "a", to: "b", amount: 30 });
+  });
+
+  it("closes a debt owed to the deleted user", () => {
+    const before = linesWith([]);
+    const line = before.detailed.find((l) => l.to === DELETED_USER_KEY)!;
+    expect(line).toEqual({ from: "a", to: DELETED_USER_KEY, amount: 30 });
+
+    const row = buildWriteOffRow("g1", line);
+    expect(row.from_user).toBe("a");
+    expect(row.to_user).toBeNull();
+
+    const after = linesWith([row]);
+    expect(after.detailed.find((l) => l.to === DELETED_USER_KEY)).toBeUndefined();
+    expect(after.detailed).toContainEqual({ from: DELETED_USER_KEY, to: "b", amount: 30 });
+  });
+
+  it("makes the group fully settled once every deleted-user line is written off and the rest is paid", () => {
+    const writeOffs = withDeleted(linesWith([]).detailed).map((l) => buildWriteOffRow("g1", l));
+    expect(writeOffs).toHaveLength(2);
+    const remaining = linesWith(writeOffs).detailed;
+    expect(withDeleted(remaining)).toEqual([]);
+    const payments = remaining.map((l) => ({ from_user: l.from, to_user: l.to, amount: l.amount, kind: "payment" }));
+    const settled = linesWith([...writeOffs, ...payments]);
+    expect(settled.detailed).toEqual([]);
+    expect(settled.simplified).toEqual([]);
+  });
+
+  it("leaves the rest of the debt after a partial write-off", () => {
+    const after = linesWith([{ from_user: null, to_user: "b", amount: 12.5, kind: "write_off" }]);
+    expect(after.detailed).toContainEqual({ from: DELETED_USER_KEY, to: "b", amount: 17.5 });
+  });
+
+  it("offers the write-off only to admins, and only on lines with exactly one deleted side", () => {
+    const deletedOwes: BalanceLine = { from: DELETED_USER_KEY, to: "b", amount: 30 };
+    const owedToDeleted: BalanceLine = { from: "a", to: DELETED_USER_KEY, amount: 30 };
+    const normal: BalanceLine = { from: "a", to: "b", amount: 30 };
+
+    expect(canWriteOff(deletedOwes, true)).toBe(true);
+    expect(canWriteOff(owedToDeleted, true)).toBe(true);
+    expect(canWriteOff(normal, true)).toBe(false);
+
+    expect(canWriteOff(deletedOwes, false)).toBe(false);
+    expect(canWriteOff(owedToDeleted, false)).toBe(false);
+    expect(canWriteOff(normal, false)).toBe(false);
   });
 });

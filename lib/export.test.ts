@@ -158,7 +158,43 @@ describe("deleted users in exports", () => {
     ]);
     const rows = parseCsv(csv.slice(1));
     expect(rows).toContainEqual(["Detailed", "Anna", "Deleted user", "20.00", "EUR"]);
-    expect(rows).toContainEqual(["2026-09-21", "Anna", "Deleted user", "5.00", "EUR"]);
+    expect(rows).toContainEqual(["2026-09-21", "Anna", "Deleted user", "5.00", "EUR", "Payment"]);
+  });
+});
+
+describe("write-offs in exports", () => {
+  const deletedExpenses: ExportExpense[] = [
+    { id: "d1", paid_by: null, amount: 30, description: "Taxi", created_at: "2026-09-20T12:00:00Z" },
+  ];
+  const deletedSplits: ExportSplit[] = [
+    { expense_id: "d1", user_id: null, amount_owed: 10 },
+    { expense_id: "d1", user_id: "a", amount_owed: 20 },
+  ];
+  const writeOff: ExportSettlement = {
+    from_user: "a",
+    to_user: null,
+    amount: 20,
+    settled_at: "2026-09-22T12:00:00Z",
+    kind: "write_off",
+  };
+
+  it("labels a write-off in the CSV settlements section and clears the balance", () => {
+    const balances = computeGroupBalances(deletedExpenses, deletedSplits, [writeOff]);
+    const rows = parseCsv(buildBalancesCsv(group, balances, members, [writeOff]).slice(1));
+    expect(rows).toContainEqual(["2026-09-22", "Anna", "Deleted user", "20.00", "EUR", "Write-off"]);
+    expect(rows).toContainEqual(["Detailed", "All settled up", "", "", ""]);
+  });
+
+  it("labels a write-off in the PDF settlements table", () => {
+    const summary = buildGroupSummary(
+      group,
+      deletedExpenses,
+      [writeOff],
+      members,
+      computeGroupBalances(deletedExpenses, deletedSplits, [writeOff]),
+      "a"
+    );
+    expect(summary.settlementRows).toEqual([["2026-09-22", "Anna", "Deleted user", "€20.00", "Write-off"]]);
   });
 });
 
@@ -192,7 +228,7 @@ describe("buildBalancesCsv", () => {
       ["Simplified", "All settled up", "", "", ""],
       [""],
       ["Settlements"],
-      ["Date", "From", "To", "Amount", "Currency"],
+      ["Date", "From", "To", "Amount", "Currency", "Type"],
       ["No settlements"],
     ]);
   });
@@ -201,10 +237,10 @@ describe("buildBalancesCsv", () => {
     const balances = computeGroupBalances(expenses, splits, settlements);
     const rows = parseCsv(buildBalancesCsv({ name: "Trip", currency: "GBP" }, balances, members, settlements).slice(1));
     const start = rows.findIndex((r) => r[0] === "Settlements");
-    expect(rows[start + 1]).toEqual(["Date", "From", "To", "Amount", "Currency"]);
+    expect(rows[start + 1]).toEqual(["Date", "From", "To", "Amount", "Currency", "Type"]);
     expect(rows.slice(start + 2)).toEqual([
-      ["2026-09-22", "bob.smith", "Anna", "10.00", "GBP"],
-      ["2026-09-21", "José", "Anna", "4.50", "GBP"],
+      ["2026-09-22", "bob.smith", "Anna", "10.00", "GBP", "Payment"],
+      ["2026-09-21", "José", "Anna", "4.50", "GBP", "Payment"],
     ]);
   });
 
@@ -239,10 +275,10 @@ describe("buildGroupSummary", () => {
       "b"
     );
     expect(summary.reconciliationNote).toBe("Balances = expenses minus settlements");
-    expect(summary.settlementColumns).toEqual(["Date", "From", "To", "Amount"]);
+    expect(summary.settlementColumns).toEqual(["Date", "From", "To", "Amount", "Type"]);
     expect(summary.settlementRows).toEqual([
-      ["2026-09-22", "bob.smith", "Anna", "£10.00"],
-      ["2026-09-21", "José", "Anna", "£4.50"],
+      ["2026-09-22", "bob.smith", "Anna", "£10.00", "Payment"],
+      ["2026-09-21", "José", "Anna", "£4.50", "Payment"],
     ]);
     expect(summary.yourBalance[0]).toBe("You owe £10.25");
     expect(JSON.stringify(summary)).not.toContain("@example.com");
@@ -251,7 +287,7 @@ describe("buildGroupSummary", () => {
   it("handles an empty group", () => {
     const summary = buildGroupSummary(group, [], [], members, computeGroupBalances([], [], []), "a");
     expect(summary.expenseRows).toEqual([["No expenses", "", "", ""]]);
-    expect(summary.settlementRows).toEqual([["No settlements", "", "", ""]]);
+    expect(summary.settlementRows).toEqual([["No settlements", "", "", "", ""]]);
     expect(summary.yourBalance).toEqual(["You're all settled up!"]);
   });
 });

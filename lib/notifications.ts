@@ -1,5 +1,6 @@
 // Pure helpers for in-app notifications (message text, badge, relative time).
 // mobile/lib/notifications.ts is an identical copy of this file.
+import { DELETED_USER_NAME } from "./displayName";
 import { formatMoney } from "./money";
 
 export const NOTIFICATION_TYPES = [
@@ -26,6 +27,8 @@ export type NotificationPayload = {
   from_name?: string;
   to_name?: string;
   member_name?: string;
+  /** settlement_added only: 'payment' (default) or 'write_off'. */
+  kind?: string;
 };
 
 export type AppNotification = {
@@ -78,6 +81,12 @@ export function buildNotificationMessage(notification: Pick<AppNotification, "ty
       return `${actor} added ${what}${money ? ` (${money})` : ""}${inGroup}`;
     }
     case "settlement_added": {
+      if (payload.kind === "write_off") {
+        // One side of a write-off is a deleted user, whose name is null.
+        const debtor = text(payload.from_name) ?? DELETED_USER_NAME;
+        const creditor = text(payload.to_name) ?? DELETED_USER_NAME;
+        return `${actor} wrote off ${debtor}'s ${money ? `${money} ` : ""}debt to ${creditor}${inGroup}`;
+      }
       const from = text(payload.from_name) ?? actor;
       const to = text(payload.to_name) ?? "someone";
       return `${from} paid ${to}${money ? ` ${money}` : ""}${inGroup}`;
