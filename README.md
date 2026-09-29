@@ -36,18 +36,18 @@ backend as the live demo, so **Try the demo** works there too.
 
 ## Features
 
-- **Groups and invites** – create a group and invite people with a shareable invite link.
-- **Equal or custom splits** – split an expense evenly or enter an exact amount per member.
-- **Balances** – see what you owe and are owed, per person and in total.
-- **Simplify debts** – switch between the detailed view and a minimal set of payments.
-- **Settle up** – record a payment with "Mark as settled"; balances update immediately.
-- **Realtime** – changes made by other members appear without refreshing (Supabase Realtime).
-- **Receipts** – attach a photo of the receipt from the camera or gallery (mobile, Supabase Storage).
-- **Multi-currency** – every group has its own currency (EUR, USD, GBP, CHF, ALL, TRY, PLN, SEK, NOK, DKK).
-- **Dark mode** – System, Light or Dark theme on web and mobile.
-- **CSV and PDF export** – export a group's expenses, balances and settlements.
-- **In-app notifications** – new members, expenses, settlements and currency changes, with unread badge.
-- **Safe account deletion** – when a user is deleted, the group history stays intact: their expenses and
+- **Groups and invites** → create a group and invite people with a shareable invite link.
+- **Equal or custom splits** → split an expense evenly or enter an exact amount per member.
+- **Balances** → see what you owe and are owed, per person and in total.
+- **Simplify debts** → switch between the detailed view and a minimal set of payments.
+- **Settle up** → record a payment with "Mark as settled"; balances update immediately.
+- **Realtime** → changes made by other members appear without refreshing (Supabase Realtime).
+- **Receipts** → attach a photo of the receipt (camera or gallery on mobile, file upload on web), view it full size; files are validated before upload and stored privately in Supabase Storage.
+- **Multi-currency** → every group has its own currency (EUR, USD, GBP, CHF, ALL, TRY, PLN, SEK, NOK, DKK).
+- **Dark mode** → System, Light or Dark theme on web and mobile.
+- **CSV and PDF export** → export a group's expenses, balances and settlements.
+- **In-app notifications** → new members, expenses, settlements and currency changes, with unread badge.
+- **Safe account deletion** → when a user is deleted, the group history stays intact: their expenses and
   splits remain and are shown as "Deleted user", and another member is promoted to group admin if needed.
   A group admin can **write off** a debt with a deleted user so the group can still become fully settled.
 
@@ -57,9 +57,9 @@ backend as the live demo, so **Try the demo** works there too.
 | --- | --- | --- | --- |
 | <img src="docs/screenshots/mobile-expenses.png" width="200" alt="Expenses tab" /> | <img src="docs/screenshots/mobile-notifications.png" width="200" alt="Notifications" /> | <img src="docs/screenshots/mobile-profile-theme.png" width="200" alt="Profile with theme setting" /> | <img src="docs/screenshots/mobile-dark-mode.png" width="200" alt="Balances in dark mode" /> |
 
-| Web: sign in | Web: sign up |
-| --- | --- |
-| <img src="docs/screenshots/web-login.png" width="300" alt="Web sign in" /> | <img src="docs/screenshots/web-signup.png" width="300" alt="Web sign up" /> |
+| Web: sign in | Web: sign up | Web: group |
+| --- | --- | --- |
+| <img src="docs/screenshots/web-login.png" width="260" alt="Web sign in with Try the demo" /> | <img src="docs/screenshots/web-signup.png" width="260" alt="Web sign up" /> | <img src="docs/screenshots/web-group.png" width="260" alt="Web group page with balances and expenses" /> |
 
 ## Tech stack
 
