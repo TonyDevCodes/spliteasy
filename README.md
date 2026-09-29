@@ -21,8 +21,10 @@ or sign in with the demo account yourself:
 | --- | --- |
 | `demo@spliteasy.dev` | `ZBXpYPJzfDw6TUDt5KXrLyYK-Aa7!` |
 
-The demo account is shared, so other visitors may see or change the same data. You can also create your own
-account: sign-up takes you straight to your groups (no confirmation email in the public demo).
+The demo account is shared, so other visitors may see or change the same data. It is reset every night at
+03:00 UTC: groups created with it are removed and the "Weekend in Amsterdam" example group is restored. You can
+also create your own account: sign-up takes you straight to your groups (no confirmation email in the public
+demo).
 
 ## Features
 
