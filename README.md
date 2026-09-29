@@ -29,7 +29,7 @@ demo).
 ### Download the Android app
 
 A preview build of the Android app (APK, version 1.0.0) is available through EAS internal distribution:
-**[Install SplitEasy for Android](https://expo.dev/accounts/tonydevcode/projects/spliteasy-mobile/builds/d7068fad-970b-4673-9b9e-da33ec14cf23)**
+**[Install SplitEasy for Android](https://expo.dev/accounts/tonydevcode/projects/spliteasy-mobile/builds/3a96b3ea-b3e7-42c3-b674-767fab759f5b)**
 (open the link on an Android device, or scan the QR code on that page). It is a preview build, not a Play
 Store release: Android asks you to allow installing apps from your browser. The app connects to the same
 backend as the live demo, so **Try the demo** works there too.
