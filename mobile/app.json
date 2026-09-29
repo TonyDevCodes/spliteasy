@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "SplitEasy Mobile",
+    "name": "SplitEasy",
     "slug": "spliteasy-mobile",
     "scheme": "spliteasy",
     "version": "1.0.0",
@@ -8,11 +8,14 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "dev.tonydevcodes.spliteasy"
     },
     "android": {
+      "package": "dev.tonydevcodes.spliteasy",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#18181b",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -33,7 +36,28 @@
           "microphonePermission": false
         }
       ],
-      "expo-sharing"
-    ]
+      "expo-sharing",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#fafafa",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#09090b"
+          }
+        }
+      ],
+      "expo-font"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3d2ddc9a-15b6-488d-a1bb-abdafba6319e"
+      }
+    },
+    "owner": "tonydevcode"
   }
 }

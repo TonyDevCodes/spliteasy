@@ -26,6 +26,14 @@ The demo account is shared, so other visitors may see or change the same data. I
 also create your own account: sign-up takes you straight to your groups (no confirmation email in the public
 demo).
 
+### Download the Android app
+
+A preview build of the Android app (APK, version 1.0.0) is available through EAS internal distribution:
+**[Install SplitEasy for Android](https://expo.dev/accounts/tonydevcode/projects/spliteasy-mobile/builds/1e4770a6-2ca3-4d17-bd78-cf64e32fc4e1)**
+(open the link on an Android device, or scan the QR code on that page). It is a preview build, not a Play
+Store release: Android asks you to allow installing apps from your browser. The app connects to the same
+backend as the live demo, so **Try the demo** works there too.
+
 ## Features
 
 - **Groups and invites** – create a group and invite people with a shareable invite link.
