@@ -10,6 +10,12 @@ import {
 import { Link } from "expo-router";
 import { useAuth } from "../../lib/auth-context";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../lib/theme";
+import { demoCredentials } from "../../lib/authConfig";
+
+const DEMO = demoCredentials(
+  process.env.EXPO_PUBLIC_DEMO_EMAIL,
+  process.env.EXPO_PUBLIC_DEMO_PASSWORD
+);
 
 export default function LoginScreen() {
   const styles = useThemedStyles(makeStyles);
@@ -28,6 +34,19 @@ export default function LoginScreen() {
 
     if (error) {
       setError(error);
+    }
+  }
+
+  // Signs in with the public demo account; the root layout then opens the app.
+  async function handleDemo() {
+    if (!DEMO) return;
+    setError(null);
+    setSubmitting(true);
+    const { error } = await signIn(DEMO.email, DEMO.password);
+    setSubmitting(false);
+
+    if (error) {
+      setError(`The demo account is unavailable right now (${error}).`);
     }
   }
 
@@ -69,6 +88,17 @@ export default function LoginScreen() {
           <Text style={styles.buttonText}>Sign in</Text>
         )}
       </TouchableOpacity>
+
+      {DEMO && (
+        <TouchableOpacity
+          style={styles.demoButton}
+          onPress={handleDemo}
+          disabled={submitting}
+          accessibilityRole="button"
+        >
+          <Text style={styles.demoButtonText}>Try the demo</Text>
+        </TouchableOpacity>
+      )}
 
       <Link href="/(auth)/signup" style={styles.link}>
         Don&apos;t have an account? Sign up
@@ -120,6 +150,20 @@ const makeStyles = (c: ThemeColors) =>
     },
     buttonText: {
       color: c.onPrimary,
+      fontSize: 16,
+      fontWeight: "600",
+    },
+    demoButton: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 8,
+      paddingVertical: 14,
+      alignItems: "center",
+      marginTop: 12,
+      backgroundColor: c.surface,
+    },
+    demoButtonText: {
+      color: c.text,
       fontSize: 16,
       fontWeight: "600",
     },

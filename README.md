@@ -12,6 +12,18 @@ tangle of debts to the smallest number of payments.
   <img src="docs/screenshots/mobile-balances-simplified.png" width="230" alt="Balances, simplified debts" />
 </p>
 
+## Try it
+
+Open the live demo at https://spliteasy-beta-five.vercel.app and click **Try the demo** on the sign-in page,
+or sign in with the demo account yourself:
+
+| Email | Password |
+| --- | --- |
+| `demo@spliteasy.dev` | `ZBXpYPJzfDw6TUDt5KXrLyYK-Aa7!` |
+
+The demo account is shared, so other visitors may see or change the same data. You can also create your own
+account: sign-up takes you straight to your groups (no confirmation email in the public demo).
+
 ## Features
 
 - **Groups and invites** – create a group and invite people with a shareable invite link.
@@ -157,6 +169,10 @@ Web – create `.env.local` in the repo root:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_SITE_URL=
+# Optional: "Try the demo" button (both needed) and the magic-link button (off unless "true")
+NEXT_PUBLIC_DEMO_EMAIL=
+NEXT_PUBLIC_DEMO_PASSWORD=
+NEXT_PUBLIC_MAGIC_LINK_ENABLED=
 ```
 
 Mobile – create `mobile/.env`:
@@ -165,6 +181,9 @@ Mobile – create `mobile/.env`:
 EXPO_PUBLIC_SUPABASE_URL=
 EXPO_PUBLIC_SUPABASE_ANON_KEY=
 EXPO_PUBLIC_SITE_URL=
+# Optional: "Try the demo" button (both needed)
+EXPO_PUBLIC_DEMO_EMAIL=
+EXPO_PUBLIC_DEMO_PASSWORD=
 ```
 
 Use the project URL and anon key from Supabase (Project Settings → API). Never put the service role key in
@@ -200,6 +219,11 @@ The start scripts set `NODE_OPTIONS=--dns-result-order=ipv4first` (via cross-env
 listen only on IPv6 `::1`, which `adb reverse` (IPv4 `127.0.0.1`) cannot reach.
 
 ## Known limitations
+
+- **No emails in the public demo.** Email confirmation and magic-link sign-in are disabled because no custom
+  email domain is configured (Supabase's built-in mailer is heavily rate-limited). Sign-up signs you in
+  immediately; the magic-link button can be turned back on with `NEXT_PUBLIC_MAGIC_LINK_ENABLED=true` once
+  email is set up.
 
 - **Sign-up email redirect.** Supabase does not always honor `emailRedirectTo` on sign-up confirmation
   emails; a fix is pending upstream (Supabase PR #2629). Until then the confirmation link may open the

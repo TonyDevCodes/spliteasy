@@ -3,6 +3,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
 import { supabase } from "./supabase";
 import { isTransientAuthError } from "./authErrors";
+import { nextStepAfterSignUp, type SignUpNextStep } from "./authConfig";
 
 type AuthContextValue = {
   session: Session | null;
@@ -13,7 +14,7 @@ type AuthContextValue = {
     email: string,
     password: string,
     name?: string
-  ) => Promise<{ error: string | null }>;
+  ) => Promise<{ error: string | null; nextStep: SignUpNextStep }>;
   signOut: () => Promise<void>;
 };
 
@@ -70,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signUp(email: string, password: string, name?: string) {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -78,7 +79,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: name?.trim() ? { display_name: name.trim() } : undefined,
       },
     });
-    return { error: error ? error.message : null };
+    // With email confirmation off there is a session right away; the root
+    // layout then switches to the app on its own.
+    return {
+      error: error ? error.message : null,
+      nextStep: nextStepAfterSignUp(data.session),
+    };
   }
 
   async function signOut() {

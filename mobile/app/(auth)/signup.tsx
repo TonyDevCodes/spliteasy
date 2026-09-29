@@ -25,7 +25,7 @@ export default function SignupScreen() {
   async function handleSubmit() {
     setError(null);
     setSubmitting(true);
-    const { error } = await signUp(email, password, name);
+    const { error, nextStep } = await signUp(email, password, name);
     setSubmitting(false);
 
     if (error) {
@@ -33,7 +33,10 @@ export default function SignupScreen() {
       return;
     }
 
-    setSubmitted(true);
+    // "enter-app": the new session makes the root layout open the groups list.
+    if (nextStep === "confirm-email") {
+      setSubmitted(true);
+    }
   }
 
   if (submitted) {

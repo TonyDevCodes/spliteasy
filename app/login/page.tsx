@@ -3,6 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { demoCredentials, isFlagEnabled, nextStepAfterSignUp } from "@/lib/authConfig";
+
+// Off in the public demo: no custom email domain is configured.
+const MAGIC_LINK_ENABLED = isFlagEnabled(process.env.NEXT_PUBLIC_MAGIC_LINK_ENABLED);
+const DEMO = demoCredentials(
+  process.env.NEXT_PUBLIC_DEMO_EMAIL,
+  process.env.NEXT_PUBLIC_DEMO_PASSWORD
+);
 
 type Mode = "sign-in" | "sign-up";
 
@@ -47,7 +55,7 @@ export default function LoginPage() {
     setMessage(null);
     setLoading(true);
 
-    const { error } =
+    const { data, error } =
       mode === "sign-in"
         ? await supabase.auth.signInWithPassword({ email, password })
         : await supabase.auth.signUp({
@@ -66,8 +74,26 @@ export default function LoginPage() {
       return;
     }
 
-    if (mode === "sign-up") {
+    // With email confirmation off, sign-up returns a session: go straight in.
+    if (mode === "sign-up" && nextStepAfterSignUp(data.session) === "confirm-email") {
       setMessage("Check your email to confirm your account.");
+      return;
+    }
+
+    router.push("/");
+    router.refresh();
+  }
+
+  async function handleDemo() {
+    if (!DEMO) return;
+    setError(null);
+    setMessage(null);
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword(DEMO);
+    setLoading(false);
+
+    if (error) {
+      setError(`The demo account is unavailable right now (${error.message}).`);
       return;
     }
 
@@ -165,14 +191,27 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <button
-          type="button"
-          onClick={handleMagicLink}
-          disabled={loading}
-          className="mt-3 w-full rounded-full border border-border px-5 py-2 text-sm font-medium text-text transition-colors hover:bg-surface-hover disabled:bg-disabled disabled:text-on-disabled"
-        >
-          Send magic link
-        </button>
+        {MAGIC_LINK_ENABLED && (
+          <button
+            type="button"
+            onClick={handleMagicLink}
+            disabled={loading}
+            className="mt-3 w-full rounded-full border border-border px-5 py-2 text-sm font-medium text-text transition-colors hover:bg-surface-hover disabled:bg-disabled disabled:text-on-disabled"
+          >
+            Send magic link
+          </button>
+        )}
+
+        {DEMO && mode === "sign-in" && (
+          <button
+            type="button"
+            onClick={handleDemo}
+            disabled={loading}
+            className="mt-3 w-full rounded-full border border-border px-5 py-2 text-sm font-medium text-text transition-colors hover:bg-surface-hover disabled:bg-disabled disabled:text-on-disabled"
+          >
+            Try the demo
+          </button>
+        )}
 
         <p className="mt-6 text-center text-sm text-text-muted">
           {mode === "sign-in" ? "Don't have an account?" : "Already have an account?"}{" "}
