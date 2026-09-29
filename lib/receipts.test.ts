@@ -7,32 +7,15 @@ import {
   isReceiptPathForGroup,
   MAX_RECEIPT_BYTES,
   receiptContentType,
-  receiptExtension,
   receiptGroupId,
   RECEIPT_SIGNED_URL_TTL_SECONDS,
   signedUrlsByPath,
-  validateReceiptFile,
+  validateReceiptImage,
+  detectReceiptImageFormat,
+  MIN_RECEIPT_BYTES,
 } from "./receipts";
 
 const GROUP = "3f2b8c1e-9a4d-4e6f-8b7a-1c2d3e4f5a6b";
-
-describe("receiptExtension", () => {
-  it("takes a known image extension from the name, lowercased", () => {
-    expect(receiptExtension("IMG_0001.PNG")).toBe("png");
-    expect(receiptExtension("file:///data/cache/photo.jpeg")).toBe("jpeg");
-  });
-
-  it("ignores a query string or fragment", () => {
-    expect(receiptExtension("https://x/y/photo.webp?token=abc#top")).toBe("webp");
-  });
-
-  it("falls back to the MIME type, then to jpg", () => {
-    expect(receiptExtension("blob", "image/png")).toBe("png");
-    expect(receiptExtension("blob", "image/jpeg")).toBe("jpg");
-    expect(receiptExtension("receipt.exe", "application/octet-stream")).toBe("jpg");
-    expect(receiptExtension("content://media/42")).toBe("jpg");
-  });
-});
 
 describe("receiptContentType", () => {
   it("maps jpg and jpeg to image/jpeg", () => {
@@ -98,14 +81,53 @@ describe("signedUrlsByPath", () => {
   });
 });
 
-describe("validateReceiptFile", () => {
-  it("accepts images up to the size limit", () => {
-    expect(validateReceiptFile({ size: MAX_RECEIPT_BYTES, type: "image/png" })).toBeNull();
+const JPEG_HEADER = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01]);
+const PNG_HEADER = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52]);
+const bytesOf = (text: string) => new Uint8Array([...text].map((c) => c.charCodeAt(0)));
+
+describe("detectReceiptImageFormat", () => {
+  it("recognises JPEG, PNG, WebP and HEIC signatures", () => {
+    expect(detectReceiptImageFormat(JPEG_HEADER)).toBe("jpg");
+    expect(detectReceiptImageFormat(PNG_HEADER)).toBe("png");
+    expect(detectReceiptImageFormat(bytesOf("RIFF\x10\x00\x00\x00WEBPVP8 "))).toBe("webp");
+    expect(detectReceiptImageFormat(bytesOf("\x00\x00\x00\x18ftypheic\x00\x00\x00\x00"))).toBe("heic");
+    expect(detectReceiptImageFormat(bytesOf("\x00\x00\x00\x18ftypmif1\x00\x00\x00\x00"))).toBe("heic");
   });
 
-  it("rejects non-images and files that are too large", () => {
-    expect(validateReceiptFile({ size: 10, type: "application/pdf" })).toMatch(/image/);
-    expect(validateReceiptFile({ size: MAX_RECEIPT_BYTES + 1, type: "image/jpeg" })).toMatch(/10 MB/);
+  it("rejects text, other formats and short headers", () => {
+    expect(detectReceiptImageFormat(bytesOf("File not found"))).toBeNull();
+    expect(detectReceiptImageFormat(bytesOf("GIF89a\x01\x00\x01\x00"))).toBeNull();
+    expect(detectReceiptImageFormat(bytesOf("%PDF-1.7\n%...."))).toBeNull();
+    expect(detectReceiptImageFormat(bytesOf("\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00"))).toBeNull();
+    expect(detectReceiptImageFormat(new Uint8Array([0xff, 0xd8]))).toBeNull();
+    expect(detectReceiptImageFormat(new Uint8Array())).toBeNull();
+  });
+});
+
+describe("validateReceiptImage", () => {
+  it("accepts a valid JPEG or PNG and returns the real extension", () => {
+    expect(validateReceiptImage(JPEG_HEADER, 34_455)).toEqual({ ok: true, extension: "jpg" });
+    expect(validateReceiptImage(PNG_HEADER, MIN_RECEIPT_BYTES)).toEqual({ ok: true, extension: "png" });
+    expect(validateReceiptImage(JPEG_HEADER, MAX_RECEIPT_BYTES)).toEqual({ ok: true, extension: "jpg" });
+  });
+
+  it("rejects a tiny file even with an image signature", () => {
+    const check = validateReceiptImage(JPEG_HEADER, MIN_RECEIPT_BYTES - 1);
+    expect(check.ok).toBe(false);
+    expect(!check.ok && check.error).toMatch(/empty or unreadable/);
+    expect(validateReceiptImage(bytesOf("File not found"), 14).ok).toBe(false);
+    expect(validateReceiptImage(new Uint8Array(), 0).ok).toBe(false);
+  });
+
+  it("rejects a wrong signature", () => {
+    const check = validateReceiptImage(bytesOf("<!DOCTYPE html><html>"), 5_000);
+    expect(check.ok).toBe(false);
+    expect(!check.ok && check.error).toMatch(/JPEG, PNG, WebP or HEIC/);
+  });
+
+  it("rejects a file over 10 MB", () => {
+    const check = validateReceiptImage(JPEG_HEADER, MAX_RECEIPT_BYTES + 1);
+    expect(!check.ok && check.error).toMatch(/10 MB/);
   });
 });
 

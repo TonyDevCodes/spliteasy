@@ -7,10 +7,11 @@ import { formatMoney, getCurrencySymbol } from '@/lib/money'
 import { createClient } from '@/lib/supabase/client'
 import {
   buildReceiptPath,
+  RECEIPT_HEADER_BYTES,
   receiptContentType,
-  receiptExtension,
   RECEIPTS_BUCKET,
-  validateReceiptFile,
+  validateReceiptImage,
+  type ReceiptImageFormat,
 } from '@/lib/receipts'
 
 type Member = {
@@ -36,7 +37,9 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
   const [customSplits, setCustomSplits] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [receiptFile, setReceiptFile] = useState<File | null>(null)
+  // The picked receipt and its real format (from the file's first bytes).
+  const [receipt, setReceipt] = useState<{ file: File; extension: ReceiptImageFormat } | null>(null)
+  const receiptFile = receipt?.file ?? null
   const receiptPreview = useMemo(
     () => (receiptFile ? URL.createObjectURL(receiptFile) : null),
     [receiptFile]
@@ -48,30 +51,36 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
     }
   }, [receiptPreview])
 
-  function handleReceiptChange(e: React.ChangeEvent<HTMLInputElement>) {
+  // Checked when picked (size and signature), so a renamed, empty or broken
+  // file is never attached.
+  async function handleReceiptChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null
     e.target.value = ''
     if (!file) return
-    const problem = validateReceiptFile(file)
-    if (problem) {
-      setError(problem)
-      return
+    try {
+      const header = new Uint8Array(await file.slice(0, RECEIPT_HEADER_BYTES).arrayBuffer())
+      const check = validateReceiptImage(header, file.size)
+      if (!check.ok) {
+        setError(check.error)
+        return
+      }
+      setError(null)
+      setReceipt({ file, extension: check.extension })
+    } catch {
+      setError('The receipt image could not be read.')
     }
-    setError(null)
-    setReceiptFile(file)
   }
 
   // Same path format as the mobile app: <group id>/<timestamp>.<ext>.
-  async function uploadReceipt(file: File): Promise<string> {
-    const ext = receiptExtension(file.name, file.type)
-    const path = buildReceiptPath(groupId, ext)
+  // Returns null when the upload fails; the expense is then saved without it.
+  async function uploadReceipt(file: File, extension: ReceiptImageFormat): Promise<string | null> {
+    const path = buildReceiptPath(groupId, extension)
     const { error: uploadError } = await createClient()
       .storage.from(RECEIPTS_BUCKET)
-      .upload(path, file, { contentType: receiptContentType(ext) })
+      .upload(path, file, { contentType: receiptContentType(extension) })
     if (uploadError) {
-      throw new Error(
-        `The receipt could not be uploaded (${uploadError.message}). Remove it to save the expense without a receipt.`
-      )
+      console.error('Receipt upload error:', uploadError)
+      return null
     }
     return path
   }
@@ -125,8 +134,13 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
 
     setSubmitting(true)
     try {
-      if (receiptFile) {
-        formData.set('receiptPath', await uploadReceipt(receiptFile))
+      if (receipt) {
+        const receiptPath = await uploadReceipt(receipt.file, receipt.extension)
+        if (receiptPath) {
+          formData.set('receiptPath', receiptPath)
+        } else {
+          formData.set('receiptFailed', '1')
+        }
       }
       await addExpenseAction(formData)
     } catch (err: any) {
@@ -249,7 +263,7 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
             <span className="flex-1 truncate text-sm text-text-muted">{receiptFile.name}</span>
             <button
               type="button"
-              onClick={() => setReceiptFile(null)}
+              onClick={() => setReceipt(null)}
               disabled={submitting}
               className="rounded-md border border-border px-3 py-1.5 text-sm text-text hover:bg-surface-hover"
             >
@@ -261,7 +275,7 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
             Attach receipt
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
               onChange={handleReceiptChange}
               className="sr-only"
             />

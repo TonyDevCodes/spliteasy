@@ -14,6 +14,7 @@ import RealtimeGroupListener from "./RealtimeGroupListener";
 import BalancesSection from "./BalancesSection";
 import CurrencySelector from "./CurrencySelector";
 import ExportMenu from "./ExportMenu";
+import ReceiptThumbnail from "./ReceiptThumbnail";
 import { createInvite } from "./actions";
 import { SignOutButton } from "@/app/sign-out-button";
 import { NotificationBell } from "@/app/notification-bell";
@@ -22,10 +23,13 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export default async function GroupDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { id } = await params;
+  const receiptFailed = (await searchParams).receipt === "failed";
 
   const supabase = await createClient();
   const user = await getCurrentUser(supabase);
@@ -162,6 +166,11 @@ export default async function GroupDetailPage({
         </div>
       </div>
       <div className="flex w-full max-w-md flex-col gap-4 rounded-lg border border-border bg-surface p-8">
+        {receiptFailed && (
+          <div className="rounded-md bg-danger-background p-3 text-sm text-danger">
+            The expense was saved, but the receipt could not be uploaded.
+          </div>
+        )}
         {hasLoadError && (
           <div className="rounded-md bg-danger-background p-3 text-sm text-danger">
             Some data failed to load — the numbers below may be incomplete.
@@ -254,42 +263,17 @@ export default async function GroupDetailPage({
                     key={e.id}
                     className="flex items-center justify-between gap-3 text-sm"
                   >
-                    <span className="flex items-center gap-2 text-text">
-                      {receiptUrl && (
-                        <a
-                          href={receiptUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Open receipt full-size"
-                          aria-label={`Receipt for ${e.description}`}
-                          className="shrink-0"
-                        >
-                          {/* Signed URLs change on every load; next/image would need the storage host configured. */}
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={receiptUrl}
-                            alt=""
-                            className="h-10 w-10 rounded border border-border bg-surface-hover object-cover hover:opacity-80"
-                          />
-                        </a>
-                      )}
+                    <span className="flex flex-col gap-1 text-text">
                       <span>
                         {e.description}
                         <span className="text-text-muted">
                           {" "}
                           — paid by {nameForUserId(e.paid_by, nameById)}
                         </span>
-                        {receiptUrl && (
-                          <a
-                            href={receiptUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="ml-2 text-xs font-medium text-link hover:underline"
-                          >
-                            Receipt
-                          </a>
-                        )}
                       </span>
+                      {receiptUrl && (
+                        <ReceiptThumbnail url={receiptUrl} description={e.description} />
+                      )}
                     </span>
                     <span className="shrink-0 font-medium text-text">
                       {formatMoney(Number(e.amount), group.currency)}

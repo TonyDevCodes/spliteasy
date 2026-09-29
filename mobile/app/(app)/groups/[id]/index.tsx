@@ -41,6 +41,7 @@ import { useAuth } from "../../../../lib/auth-context";
 import {
   collectReceiptPaths,
   RECEIPT_SIGNED_URL_TTL_SECONDS,
+  RECEIPT_UNAVAILABLE_TEXT,
   RECEIPTS_BUCKET,
   signedUrlsByPath,
 } from "../../../../lib/receipts";
@@ -146,6 +147,11 @@ export default function GroupDetailScreen() {
   // Signed URLs (private bucket) by receipt path, and the one shown full-size.
   const [receiptUrls, setReceiptUrls] = useState<Record<string, string>>({});
   const [viewingReceiptUrl, setViewingReceiptUrl] = useState<string | null>(null);
+  // Signed URLs whose image failed to load (missing or not a real image).
+  const [brokenReceiptUrls, setBrokenReceiptUrls] = useState<Record<string, boolean>>({});
+  const markReceiptBroken = useCallback((url: string) => {
+    setBrokenReceiptUrls((prev) => (prev[url] ? prev : { ...prev, [url]: true }));
+  }, []);
 
   const loadGroupData = useCallback(async (groupId: string) => {
     setLoading(true);
@@ -538,11 +544,15 @@ export default function GroupDetailScreen() {
           onPress={() => setViewingReceiptUrl(null)}
           accessibilityLabel="Close receipt"
         >
-          {viewingReceiptUrl && (
+          {viewingReceiptUrl && brokenReceiptUrls[viewingReceiptUrl] && (
+            <Text style={styles.receiptViewerMessage}>{RECEIPT_UNAVAILABLE_TEXT}</Text>
+          )}
+          {viewingReceiptUrl && !brokenReceiptUrls[viewingReceiptUrl] && (
             <Image
               source={{ uri: viewingReceiptUrl }}
               style={styles.receiptFull}
               resizeMode="contain"
+              onError={() => markReceiptBroken(viewingReceiptUrl)}
             />
           )}
           <Text style={styles.receiptViewerHint}>Tap to close</Text>
@@ -750,14 +760,21 @@ export default function GroupDetailScreen() {
                         paid by {nameForUserId(item.paid_by, nameById)} ·{" "}
                         {new Date(item.created_at).toLocaleDateString()}
                       </Text>
-                      {receiptUrl && (
+                      {receiptUrl && brokenReceiptUrls[receiptUrl] && (
+                        <Text style={styles.receiptUnavailable}>{RECEIPT_UNAVAILABLE_TEXT}</Text>
+                      )}
+                      {receiptUrl && !brokenReceiptUrls[receiptUrl] && (
                         <TouchableOpacity
                           style={styles.receiptLink}
                           onPress={() => setViewingReceiptUrl(receiptUrl)}
                           accessibilityRole="button"
                           accessibilityLabel={`View receipt for ${item.description}`}
                         >
-                          <Image source={{ uri: receiptUrl }} style={styles.receiptThumb} />
+                          <Image
+                            source={{ uri: receiptUrl }}
+                            style={styles.receiptThumb}
+                            onError={() => markReceiptBroken(receiptUrl)}
+                          />
                           <Text style={styles.receiptLinkText}>Receipt</Text>
                         </TouchableOpacity>
                       )}
@@ -999,6 +1016,28 @@ const makeStyles = (c: ThemeColors) =>
       fontSize: 13,
       fontWeight: "600",
       color: c.link,
+    },
+    receiptUnavailable: {
+      marginTop: 6,
+      alignSelf: "flex-start",
+      fontSize: 12,
+      fontStyle: "italic",
+      color: c.textMuted,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 4,
+      paddingVertical: 2,
+      paddingHorizontal: 6,
+    },
+    receiptViewerMessage: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: c.text,
+      backgroundColor: c.surface,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      overflow: "hidden",
     },
     receiptViewer: {
       flex: 1,

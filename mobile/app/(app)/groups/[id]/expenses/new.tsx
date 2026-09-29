@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import { File } from "expo-file-system";
 import { supabase } from "../../../../../lib/supabase";
 import { getDisplayName } from "../../../../../lib/displayName";
 import { DEFAULT_CURRENCY, formatMoney, getCurrencySymbol } from "../../../../../lib/money";
@@ -19,9 +20,10 @@ import { useTheme, useThemedStyles, type ThemeColors } from "../../../../../lib/
 import { useAuth } from "../../../../../lib/auth-context";
 import {
   buildReceiptPath,
+  RECEIPT_HEADER_BYTES,
   receiptContentType,
-  receiptExtension,
   RECEIPTS_BUCKET,
+  validateReceiptImage,
 } from "../../../../../lib/receipts";
 
 type ProfileRow = {
@@ -185,28 +187,40 @@ export default function NewExpenseScreen() {
     setPhotoError(null);
   }
 
-  async function uploadReceiptPhoto(uri: string, groupId: string): Promise<string | null> {
+  // Reads the photo with expo-file-system, never fetch(uri): fetch can return
+  // an error body (e.g. "File not found") that would be stored as the receipt.
+  async function uploadReceiptPhoto(
+    uri: string,
+    groupId: string
+  ): Promise<{ path: string } | { error: string }> {
     try {
-      const response = await fetch(uri);
-      const arrayBuffer = await response.arrayBuffer();
-      const ext = receiptExtension(uri, response.headers.get("content-type"));
-      const path = buildReceiptPath(groupId, ext);
+      const file = new File(uri);
+      if (!file.exists) {
+        return { error: "The photo file could not be found." };
+      }
 
+      const bytes = await file.bytes();
+      const check = validateReceiptImage(bytes.subarray(0, RECEIPT_HEADER_BYTES), bytes.length);
+      if (!check.ok) {
+        return { error: check.error };
+      }
+
+      const path = buildReceiptPath(groupId, check.extension);
       const { error: uploadError } = await supabase.storage
         .from(RECEIPTS_BUCKET)
-        .upload(path, arrayBuffer, {
-          contentType: receiptContentType(ext),
+        .upload(path, bytes, {
+          contentType: receiptContentType(check.extension),
         });
 
       if (uploadError) {
         console.error("Receipt upload error:", uploadError);
-        return null;
+        return { error: "The photo could not be uploaded." };
       }
 
-      return path;
+      return { path };
     } catch (uploadException) {
       console.error("Receipt upload error:", uploadException);
-      return null;
+      return { error: "The photo could not be read." };
     }
   }
 
@@ -234,12 +248,18 @@ export default function NewExpenseScreen() {
 
     setSubmitting(true);
 
+    // A receipt that fails validation or upload is dropped; the expense is
+    // still saved, without a receipt.
     let receiptPath: string | null = null;
-    let receiptUploadFailed = false;
+    let receiptError: string | null = null;
 
     if (photoUri) {
-      receiptPath = await uploadReceiptPhoto(photoUri, groupId);
-      receiptUploadFailed = receiptPath === null;
+      const upload = await uploadReceiptPhoto(photoUri, groupId);
+      if ("path" in upload) {
+        receiptPath = upload.path;
+      } else {
+        receiptError = upload.error;
+      }
     }
 
     const { data: expense, error: expenseError } = await supabase
@@ -278,10 +298,10 @@ export default function NewExpenseScreen() {
 
     setSubmitting(false);
 
-    if (receiptUploadFailed) {
+    if (receiptError) {
       Alert.alert(
         "Expense added without receipt",
-        "The expense was saved, but the receipt photo couldn't be uploaded."
+        `The expense was saved, but the receipt was not attached: ${receiptError}`
       );
     }
 

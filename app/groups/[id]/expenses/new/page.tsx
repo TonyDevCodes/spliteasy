@@ -100,7 +100,10 @@ export default async function NewExpensePage({
       throw new Error(splitsError.message)
     }
 
-    redirect(`/groups/${groupId}`)
+    // The form saves the expense even when the receipt upload failed; the
+    // group page then says so.
+    const receiptFailed = formData.get('receiptFailed') === '1'
+    redirect(receiptFailed ? `/groups/${groupId}?receipt=failed` : `/groups/${groupId}`)
   }
 
   return (

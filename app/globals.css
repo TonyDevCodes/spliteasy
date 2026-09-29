@@ -21,6 +21,7 @@
   --color-link: var(--link);
   --color-input-background: var(--input-background);
   --color-placeholder: var(--placeholder);
+  --color-overlay: var(--overlay);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
