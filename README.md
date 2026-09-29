@@ -29,7 +29,7 @@ demo).
 ### Download the Android app
 
 A preview build of the Android app (APK, version 1.0.0) is available through EAS internal distribution:
-**[Install SplitEasy for Android](https://expo.dev/accounts/tonydevcode/projects/spliteasy-mobile/builds/1e4770a6-2ca3-4d17-bd78-cf64e32fc4e1)**
+**[Install SplitEasy for Android](https://expo.dev/accounts/tonydevcode/projects/spliteasy-mobile/builds/70586476-5927-4115-95d5-9d4d6f65c02e)**
 (open the link on an Android device, or scan the QR code on that page). It is a preview build, not a Play
 Store release: Android asks you to allow installing apps from your browser. The app connects to the same
 backend as the live demo, so **Try the demo** works there too.
@@ -238,5 +238,4 @@ listen only on IPv6 `::1`, which `adb reverse` (IPv4 `127.0.0.1`) cannot reach.
 - **Sign-up email redirect.** Supabase does not always honor `emailRedirectTo` on sign-up confirmation
   emails; a fix is pending upstream (Supabase PR #2629). Until then the confirmation link may open the
   Site URL configured in the Supabase dashboard instead of the app's callback.
-- **Push notifications** require an EAS development build; Expo Go cannot receive remote push
-  notifications. Notifications are currently in-app only.
+- Push notifications are planned; the app has in-app notifications with an unread badge.

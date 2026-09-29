@@ -38,6 +38,7 @@ import { shareCsv, sharePdf } from "../../../../lib/exportFiles";
 import { DEFAULT_CURRENCY, formatMoney, SUPPORTED_CURRENCIES } from "../../../../lib/money";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../../../lib/theme";
 import { useAuth } from "../../../../lib/auth-context";
+import { inviteUrl } from "../../../../lib/invites";
 import {
   collectReceiptPaths,
   RECEIPT_SIGNED_URL_TTL_SECONDS,
@@ -460,7 +461,7 @@ export default function GroupDetailScreen() {
     if (!invite) return;
     try {
       await Share.share({
-        message: `Join my SplitEasy group: ${SITE_URL}/invite/${invite.token}`,
+        message: `Join my SplitEasy group: ${inviteUrl(SITE_URL, invite.token)}`,
       });
     } catch (shareError) {
       console.error("Share invite error:", shareError);
@@ -795,10 +796,10 @@ export default function GroupDetailScreen() {
                 {invite ? (
                   <>
                     <Text style={styles.mutedText}>
-                      {SITE_URL}/invite/{invite.token}
+                      {inviteUrl(SITE_URL, invite.token)}
                     </Text>
                     <TouchableOpacity style={styles.button} onPress={handleShareInvite}>
-                      <Text style={styles.buttonText}>Share invite</Text>
+                      <Text style={styles.buttonText}>Share</Text>
                     </TouchableOpacity>
                   </>
                 ) : (

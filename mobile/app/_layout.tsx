@@ -7,12 +7,14 @@ import {
   ThemeProvider as NavigationThemeProvider,
   useRouter,
   useSegments,
+  type Href,
   type Theme,
 } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "../lib/auth-context";
 import { ThemeProvider, useTheme, useThemedStyles, type ThemeColors } from "../lib/theme";
+import { takePendingRedirect } from "../lib/pendingRedirect";
 
 function RootNavigation() {
   const { session, loading } = useAuth();
@@ -21,15 +23,21 @@ function RootNavigation() {
   const styles = useThemedStyles(makeStyles);
 
   useEffect(() => {
-    if (loading) return;
+    // No route yet: on a cold start from a link (e.g. an invite) the router
+    // has not resolved it. Redirecting now would override the link.
+    if (loading || (segments as string[]).length === 0) return;
 
     const inAuthGroup = segments[0] === "(auth)";
     const inAuthCallback = segments[0] === "auth";
+    // The invite screen handles signed-out users itself (asks them to sign in).
+    const inInvite = segments[0] === "invite";
 
-    if (!session && !inAuthGroup && !inAuthCallback) {
+    if (!session && !inAuthGroup && !inAuthCallback && !inInvite) {
       router.replace("/(auth)/login");
     } else if (session && inAuthGroup) {
-      router.replace("/(app)");
+      // After signing in, return to an invite opened while signed out.
+      const next = takePendingRedirect();
+      router.replace((next ?? "/(app)") as Href);
     }
   }, [session, loading, segments, router]);
 
