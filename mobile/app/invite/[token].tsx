@@ -8,7 +8,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/auth-context";
-import { invitePath, parseInviteToken } from "../../lib/invites";
+import { invitePath, joinGroupByToken, parseInviteToken } from "../../lib/invites";
 import { setPendingRedirect } from "../../lib/pendingRedirect";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../lib/theme";
 
@@ -97,27 +97,28 @@ export default function InviteScreen() {
     router.replace(screen === "login" ? "/(auth)/login" : "/(auth)/signup");
   }
 
-  async function handleJoin(invite: InviteRow) {
-    if (!userId) return;
+  // Joins through the join_group_by_token RPC (checked in the database);
+  // already a member: the RPC just returns the group.
+  async function handleJoin() {
+    if (!userId || !token) return;
     setJoining(true);
     setJoinError(null);
 
-    const { error } = await supabase.from("group_members").insert({
-      group_id: invite.group_id,
-      user_id: userId,
-      role: "member",
-    });
+    const result = await joinGroupByToken(supabase, token);
 
     setJoining(false);
 
-    // 23505: already a member (e.g. joined from another device) - just open it.
-    if (error && error.code !== "23505") {
-      console.error("Join group error:", error);
-      setJoinError("Could not join the group. Please try again.");
-      return;
+    if (result.ok) {
+      openGroup(result.groupId);
+    } else if (result.reason === "invalid") {
+      setState({ kind: "invalid" });
+    } else if (result.reason === "expired") {
+      setState({ kind: "expired" });
+    } else if (result.reason === "not-signed-in") {
+      setState({ kind: "signed-out" });
+    } else {
+      setJoinError(result.message);
     }
-
-    openGroup(invite.group_id);
   }
 
   function leave() {
@@ -196,7 +197,7 @@ export default function InviteScreen() {
           {joinError && <Text style={styles.error}>{joinError}</Text>}
           <TouchableOpacity
             style={styles.primaryButton}
-            onPress={() => handleJoin(state.invite)}
+            onPress={handleJoin}
             disabled={joining}
           >
             {joining ? (

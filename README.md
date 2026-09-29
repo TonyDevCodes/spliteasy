@@ -103,9 +103,10 @@ flowchart LR
 Next.js server code) and the mobile app only hold the public anon key and the signed-in user's own session,
 so every permission check is enforced inside PostgreSQL, by Row Level Security policies plus a few
 `security definer` functions (invite lookup, triggers). Even a modified client cannot read or change data in
-groups the user is not a member of. The one open door is joining: a signed-in user can add themselves to a
-group whose id they know, which the invite flow relies on. Admin-only actions (editing a group, write-offs)
-are enforced the same way, through `is_group_admin`.
+groups the user is not a member of. Joining is checked in the database too: the `join_group_by_token`
+function only adds the user when the invite token exists and has not expired, and direct inserts into
+`group_members` are limited to the group creator (as the first member) and group admins. Admin-only actions
+(editing a group, write-offs) are enforced the same way, through `is_group_admin`.
 
 **Private receipts.** Receipt images live in a private Supabase Storage bucket protected by RLS: only members
 of the group can upload or view them (only the uploader or a group admin can replace or delete one), and the

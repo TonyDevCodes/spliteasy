@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { joinGroupByToken } from "@/lib/invites";
 
+// Joining goes through the join_group_by_token RPC, which checks the invite
+// in the database (already a member: it just returns the group).
 async function joinGroup(formData: FormData) {
   "use server";
 
-  const groupId = formData.get("groupId") as string;
   const token = formData.get("token") as string;
 
   const supabase = await createClient();
@@ -15,26 +17,29 @@ async function joinGroup(formData: FormData) {
     redirect(`/login?next=/invite/${token}`);
   }
 
-  const { error } = await supabase.from("group_members").insert({
-    group_id: groupId,
-    user_id: user.id,
-    role: "member",
-  });
+  const result = await joinGroupByToken(supabase, token);
 
-  if (error && error.code !== "23505") {
-    console.error("Join group error:", error);
-    return;
+  if (!result.ok) {
+    console.error("Join group error:", result.reason);
+    if (result.reason === "not-signed-in") {
+      redirect(`/login?next=/invite/${token}`);
+    }
+    // Invalid/expired: the invite page shows that state; otherwise say so.
+    redirect(`/invite/${token}${result.reason === "failed" ? "?error=join" : ""}`);
   }
 
-  redirect(`/groups/${groupId}`);
+  redirect(`/groups/${result.groupId}`);
 }
 
 export default async function InvitePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { token } = await params;
+  const joinFailed = (await searchParams).error === "join";
 
   const supabase = await createClient();
   const user = await getCurrentUser(supabase);
@@ -84,8 +89,12 @@ export default async function InvitePage({
         <h1 className="text-xl font-semibold text-text">
           {invite.group_name}
         </h1>
+        {joinFailed && (
+          <p className="w-full rounded-md bg-danger-background p-3 text-sm text-danger">
+            Could not join the group. Please try again.
+          </p>
+        )}
         <form action={joinGroup} className="w-full">
-          <input type="hidden" name="groupId" value={invite.group_id} />
           <input type="hidden" name="token" value={token} />
           <button
             type="submit"

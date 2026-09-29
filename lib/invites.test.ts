@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
-import { invitePath, inviteUrl, parseInviteToken, safeReturnPath } from "./invites";
+import { describe, expect, it, vi } from "vitest";
+import { invitePath, inviteUrl, joinGroupByToken, parseInviteToken, safeReturnPath } from "./invites";
 
 const TOKEN = "3f2b8c1e-9a4d-4e6f-8b7a-1c2d3e4f5a6b";
 
@@ -57,6 +57,51 @@ describe("safeReturnPath", () => {
     expect(safeReturnPath("/invite/bad token")).toBeNull();
     expect(safeReturnPath(undefined)).toBeNull();
     expect(safeReturnPath(42)).toBeNull();
+  });
+});
+
+describe("joinGroupByToken", () => {
+  const GROUP = "0b7e2d7a-1f1a-4c2e-9a53-6a8d4f0e9c11";
+
+  function mockClient(result: { data: unknown; error: { message?: string } | null } | Error) {
+    const rpc = vi.fn(async () => {
+      if (result instanceof Error) throw result;
+      return result;
+    });
+    return { client: { rpc }, rpc };
+  }
+
+  it("joins through the RPC and returns the group id", async () => {
+    const { client, rpc } = mockClient({ data: GROUP, error: null });
+    expect(await joinGroupByToken(client, `spliteasy://invite/${TOKEN}`)).toEqual({ ok: true, groupId: GROUP });
+    expect(rpc).toHaveBeenCalledWith("join_group_by_token", { p_token: TOKEN });
+  });
+
+  it("reports an invalid or expired invite", async () => {
+    const invalid = await joinGroupByToken(mockClient({ data: null, error: { message: "invite_invalid" } }).client, TOKEN);
+    expect(invalid).toEqual({ ok: false, reason: "invalid", message: "This invite link is invalid." });
+    const expired = await joinGroupByToken(mockClient({ data: null, error: { message: "invite_expired" } }).client, TOKEN);
+    expect(expired).toMatchObject({ ok: false, reason: "expired" });
+  });
+
+  it("reports a signed-out user", async () => {
+    const result = await joinGroupByToken(mockClient({ data: null, error: { message: "not_authenticated" } }).client, TOKEN);
+    expect(result).toMatchObject({ ok: false, reason: "not-signed-in" });
+  });
+
+  it("reports network errors, thrown or returned", async () => {
+    const returned = await joinGroupByToken(mockClient({ data: null, error: { message: "TypeError: Network request failed" } }).client, TOKEN);
+    expect(returned).toMatchObject({ ok: false, reason: "failed" });
+    const thrown = await joinGroupByToken(mockClient(new Error("fetch failed")).client, TOKEN);
+    expect(thrown).toMatchObject({ ok: false, reason: "failed" });
+    const empty = await joinGroupByToken(mockClient({ data: null, error: null }).client, TOKEN);
+    expect(empty).toMatchObject({ ok: false, reason: "failed" });
+  });
+
+  it("does not call the RPC for a malformed token", async () => {
+    const { client, rpc } = mockClient({ data: GROUP, error: null });
+    expect(await joinGroupByToken(client, "bad token!")).toMatchObject({ ok: false, reason: "invalid" });
+    expect(rpc).not.toHaveBeenCalled();
   });
 });
 
