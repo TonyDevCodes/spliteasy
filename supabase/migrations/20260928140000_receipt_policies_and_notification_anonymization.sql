@@ -15,6 +15,7 @@
 --      Payloads only stored names, so the notify_* functions now also store
 --      the ids (actor_id, paid_by_id, from_id, to_id, member_id), and
 --      existing payloads are backfilled from the source rows.
+--      Users that were deleted before this migration are anonymized once (section 4b).
 
 begin;
 
@@ -250,6 +251,38 @@ where n.type = 'member_joined'
   and n.actor_id is not null
   and not (n.payload ? 'member_id');
 
+-- 4b. 6.30: users deleted BEFORE this migration --------------------------------
+-- Their profile is gone and every reference to them is already NULL
+-- (actor_id, expenses.paid_by, settlements.from_user/to_user are
+-- ON DELETE SET NULL). A NULL actor only happens after a user deletion,
+-- because the notify_* functions never create a notification without actor.
+
+update public.notifications n
+set payload = n.payload
+  || jsonb_build_object('actor_name', 'Deleted user')
+  || case when n.type = 'member_joined'
+          then jsonb_build_object('member_name', 'Deleted user')
+          else '{}'::jsonb end
+where n.actor_id is null;
+
+update public.notifications n
+set payload = n.payload || jsonb_build_object('paid_by_name', 'Deleted user')
+from public.expenses e
+where n.type = 'expense_added'
+  and e.id::text = n.payload->>'expense_id'
+  and e.paid_by is null;
+
+update public.notifications n
+set payload = n.payload
+  || case when s.from_user is null
+          then jsonb_build_object('from_name', 'Deleted user') else '{}'::jsonb end
+  || case when s.to_user is null
+          then jsonb_build_object('to_name', 'Deleted user') else '{}'::jsonb end
+from public.settlements s
+where n.type = 'settlement_added'
+  and s.id::text = n.payload->>'settlement_id'
+  and (s.from_user is null or s.to_user is null);
+
 -- 5. 6.30: anonymize on user deletion -----------------------------------------
 
 -- BEFORE DELETE on profiles: runs for a direct profile delete and for the
@@ -307,8 +340,8 @@ commit;
 -- 6. Verification ------------------------------------------------------------
 -- Expected: 'receipts policy count' = 4 and four 'storage policy' rows; the
 -- trigger present; both functions security definer with search_path=public
--- and no client execute; 'payloads missing ids' ideally 0 (rows whose
--- expense/settlement no longer exists keep counting).
+-- and no client execute; 'deleted-user notifications' counts notifications
+-- whose actor is shown as 'Deleted user'.
 
 select 'receipts policy count'::text as kind, count(*)::text as name, 'expected 4'::text as detail
 from pg_policies
@@ -339,10 +372,7 @@ where p.pronamespace = 'public'::regnamespace
     'receipt_group_id'
   )
 union all
-select 'payloads missing ids', count(*)::text, 'by type: ' || coalesce(string_agg(distinct type, ','), '-')
+select 'deleted-user notifications', count(*)::text, 'actor_name = Deleted user'
 from public.notifications
-where (actor_id is not null and not (payload ? 'actor_id'))
-   or (type = 'expense_added' and not (payload ? 'paid_by_id'))
-   or (type = 'settlement_added' and not (payload ? 'from_id'))
-   or (type = 'member_joined' and not (payload ? 'member_id'))
+where payload->>'actor_name' = 'Deleted user'
 order by 1, 2;
