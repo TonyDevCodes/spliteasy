@@ -32,7 +32,8 @@
           "cameraPermission": "Allow SplitEasy to access your camera to take a photo of a receipt.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-sharing"
     ]
   }
 }
