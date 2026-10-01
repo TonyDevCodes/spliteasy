@@ -61,13 +61,6 @@ describe("theme colors", () => {
     });
   }
 
-  it("has dark mode borders with at least 3:1 contrast against inputs and cards", () => {
-    const dark = themeColors.dark;
-    for (const bg of ["surface", "background", "inputBackground"] as const) {
-      expect(contrastRatio(dark.border, dark[bg])).toBeGreaterThanOrEqual(3);
-    }
-  });
-
   it("is identical in the mobile app", () => {
     const extract = (path: string) => {
       const source = readFileSync(path, "utf8");

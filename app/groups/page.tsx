@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { getDisplayName } from "@/lib/displayName";
 import { SignOutButton } from "@/app/sign-out-button";
+import { Logo } from "@/components/Logo";
 import { NotificationBell } from "@/app/notification-bell";
 
 type GroupRow = {
@@ -55,6 +56,10 @@ export default async function GroupsPage() {
 
   return (
     <div className="flex flex-1 flex-col items-center gap-6 bg-background px-4 py-12">
+      <div className="flex w-full max-w-md">
+        <Logo size={24} withWordmark />
+      </div>
+
       <div className="flex w-full max-w-md items-center justify-between text-sm text-text-muted">
         <span>
           Signed in as{" "}
