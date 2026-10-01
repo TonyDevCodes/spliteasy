@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Image, Modal, Pressable, Share, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "../../../../components/AppText";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -135,6 +135,8 @@ export default function GroupDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loadWarning, setLoadWarning] = useState(false);
   const [settlingKey, setSettlingKey] = useState<string | null>(null);
+  // Synchronous lock: state updates are async, so a fast double tap would slip through.
+  const settlingRef = useRef(false);
   const [generatingInvite, setGeneratingInvite] = useState(false);
   const [currencyError, setCurrencyError] = useState<string | null>(null);
   const [savingCurrency, setSavingCurrency] = useState(false);
@@ -330,7 +332,8 @@ export default function GroupDetailScreen() {
   const currency = group?.currency ?? DEFAULT_CURRENCY;
 
   async function handleSettle(line: BalanceLine) {
-    if (!id) return;
+    if (!id || settlingRef.current) return;
+    settlingRef.current = true;
     const key = `${line.from}-${line.to}`;
     setSettlingKey(key);
 
@@ -349,6 +352,7 @@ export default function GroupDetailScreen() {
     }
 
     setSettlingKey(null);
+    settlingRef.current = false;
   }
 
   // Closes a debt with a deleted user. The settlements_insert_write_off RLS
@@ -361,7 +365,8 @@ export default function GroupDetailScreen() {
   }
 
   async function handleWriteOff(line: BalanceLine) {
-    if (!id) return;
+    if (!id || settlingRef.current) return;
+    settlingRef.current = true;
     const key = `${line.from}-${line.to}`;
     setSettlingKey(key);
 
@@ -375,6 +380,7 @@ export default function GroupDetailScreen() {
     }
 
     setSettlingKey(null);
+    settlingRef.current = false;
   }
 
   // Changing the currency does not convert amounts, so ask first.
@@ -721,7 +727,7 @@ export default function GroupDetailScreen() {
                     <TouchableOpacity
                       style={styles.settleButton}
                       onPress={() => handleSettle(item)}
-                      disabled={settlingKey === key}
+                      disabled={settlingKey !== null}
                     >
                       {settlingKey === key ? (
                         <ActivityIndicator size="small" color={colors.text} />
@@ -735,7 +741,7 @@ export default function GroupDetailScreen() {
                     <TouchableOpacity
                       style={styles.settleButton}
                       onPress={() => confirmWriteOff(item)}
-                      disabled={settlingKey === key}
+                      disabled={settlingKey !== null}
                     >
                       {settlingKey === key ? (
                         <ActivityIndicator size="small" color={colors.text} />

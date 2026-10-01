@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   canWriteOff,
   WRITE_OFF_CONFIRM_TEXT,
@@ -33,6 +33,26 @@ export default function BalancesSection({
 }: Props) {
   const [view, setView] = useState<"detailed" | "simplified">("detailed");
   const lines = view === "detailed" ? detailedLines : simplifiedLines;
+
+  // The ref blocks a second submit synchronously; state only drives `disabled`.
+  const submittingRef = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // The server action redirects back here with fresh balances, so unlock.
+  useEffect(() => {
+    submittingRef.current = false;
+    setSubmitting(false);
+  }, [detailedLines, simplifiedLines]);
+
+  function lockSubmit(event: React.FormEvent<HTMLFormElement>): boolean {
+    if (submittingRef.current) {
+      event.preventDefault();
+      return false;
+    }
+    submittingRef.current = true;
+    setSubmitting(true);
+    return true;
+  }
 
   // The expenses list below already explains an empty group.
   if (!hasExpenses) return null;
@@ -88,7 +108,7 @@ export default function BalancesSection({
                   </span>
                   {/* A settlement needs two existing users. */}
                   {!isDeletedUser(line.from) && !isDeletedUser(line.to) && (
-                  <form action={recordSettlement}>
+                  <form action={recordSettlement} onSubmit={lockSubmit}>
                     <input type="hidden" name="groupId" value={groupId} />
                     <input type="hidden" name="fromUser" value={line.from} />
                     <input type="hidden" name="toUser" value={line.to} />
@@ -99,7 +119,8 @@ export default function BalancesSection({
                     />
                     <button
                       type="submit"
-                      className="whitespace-nowrap rounded-md border border-border px-2 py-1 text-xs font-medium text-text hover:bg-surface-hover"
+                      disabled={submitting}
+                      className="whitespace-nowrap rounded-md border border-border px-2 py-1 text-xs font-medium text-text hover:bg-surface-hover disabled:opacity-50"
                     >
                       Mark as settled
                     </button>
@@ -110,9 +131,11 @@ export default function BalancesSection({
                   <form
                     action={recordWriteOff}
                     onSubmit={(event) => {
-                      if (!window.confirm(WRITE_OFF_CONFIRM_TEXT)) {
+                      if (submittingRef.current || !window.confirm(WRITE_OFF_CONFIRM_TEXT)) {
                         event.preventDefault();
+                        return;
                       }
+                      lockSubmit(event);
                     }}
                   >
                     <input type="hidden" name="groupId" value={groupId} />
@@ -125,7 +148,8 @@ export default function BalancesSection({
                     />
                     <button
                       type="submit"
-                      className="whitespace-nowrap rounded-md border border-border px-2 py-1 text-xs font-medium text-text hover:bg-surface-hover"
+                      disabled={submitting}
+                      className="whitespace-nowrap rounded-md border border-border px-2 py-1 text-xs font-medium text-text hover:bg-surface-hover disabled:opacity-50"
                     >
                       {WRITE_OFF_LABEL}
                     </button>
