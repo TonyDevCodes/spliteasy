@@ -42,7 +42,8 @@ create table if not exists demo_private.settings (
 revoke all on table demo_private.settings from public, anon, authenticated;
 alter table demo_private.settings enable row level security;
 
--- Snapshot of the demo password hash; fails if the demo user does not exist.
+-- Snapshot of the demo password hash; skipped (notice) if the demo user does
+-- not exist, as on a fresh database.
 do $$
 declare
   v_hash text;
@@ -52,7 +53,8 @@ begin
   where lower(email) = 'demo@spliteasy.dev';
 
   if v_hash is null then
-    raise exception 'demo@spliteasy.dev not found or has no password';
+    raise notice 'demo@spliteasy.dev not found or has no password, skipping hash snapshot';
+    return;
   end if;
 
   insert into demo_private.settings (key, value)
@@ -81,9 +83,11 @@ begin
   select id into v_alex from auth.users where lower(email) = 'alex@spliteasy.dev';
   select id into v_sam  from auth.users where lower(email) = 'sam@spliteasy.dev';
 
-  if v_demo is null then raise exception 'reset_demo: demo@spliteasy.dev not found'; end if;
-  if v_alex is null then raise exception 'reset_demo: alex@spliteasy.dev not found'; end if;
-  if v_sam  is null then raise exception 'reset_demo: sam@spliteasy.dev not found'; end if;
+  -- A fresh database has no demo accounts: skip instead of failing, so the
+  -- migrations replay from scratch.
+  if v_demo is null then raise notice 'reset_demo: demo@spliteasy.dev not found, skipping'; return; end if;
+  if v_alex is null then raise notice 'reset_demo: alex@spliteasy.dev not found, skipping'; return; end if;
+  if v_sam  is null then raise notice 'reset_demo: sam@spliteasy.dev not found, skipping'; return; end if;
 
   -- Only groups the demo user CREATED are deleted. From any other group the
   -- demo user joined (for example through an invite link to a real group),
