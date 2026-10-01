@@ -1,11 +1,13 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
+import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "../../components/AppText";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { supabase } from "../../lib/supabase";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../lib/theme";
 import { Logo } from "../../components/Logo";
+import { EmptyState } from "../../components/EmptyState";
+import { SkeletonList } from "../../components/Skeleton";
 import { useAuth } from "../../lib/auth-context";
 import { formatBadgeCount } from "../../lib/notifications";
 import { useUnreadNotifications } from "../../lib/useUnreadNotifications";
@@ -104,7 +106,8 @@ export default function GroupsScreen() {
       <Stack.Screen
         options={{
           title: "Your groups",
-          headerTitle: () => <Logo size={24} withWordmark />,
+          headerTitle: "",
+          headerLeft: () => <Logo size={24} withWordmark />,
           headerRight: () => (
             <View style={styles.headerRightRow}>
               <TouchableOpacity
@@ -123,14 +126,10 @@ export default function GroupsScreen() {
               <TouchableOpacity
                 onPress={() => router.push("/(app)/profile")}
                 style={styles.headerButton}
+                accessibilityRole="button"
+                accessibilityLabel="Profile"
               >
-                <Text style={styles.headerButtonText}>Profile</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => router.push("/(app)/groups/new")}
-                style={styles.headerButton}
-              >
-                <Text style={styles.headerButtonText}>+ New Group</Text>
+                <Ionicons name="person-circle-outline" size={26} color={colors.text} />
               </TouchableOpacity>
             </View>
           ),
@@ -140,20 +139,14 @@ export default function GroupsScreen() {
       {error && <Text style={styles.error}>{error}</Text>}
 
       {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.text} />
-        </View>
+        <SkeletonList count={3} label="Loading your groups" />
       ) : groups.length === 0 ? (
         <View style={styles.centered}>
-          <Text style={styles.emptyText}>
-            You&apos;re not part of any group yet.
-          </Text>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => router.push("/(app)/groups/new")}
-          >
-            <Text style={styles.buttonText}>Create a group</Text>
-          </TouchableOpacity>
+          <EmptyState
+            title="No groups yet"
+            description="Create your first group and start splitting costs."
+            action={{ label: "Create group", onPress: () => router.push("/(app)/groups/new") }}
+          />
         </View>
       ) : (
         <FlatList
@@ -176,6 +169,15 @@ export default function GroupsScreen() {
           )}
         />
       )}
+
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push("/(app)/groups/new")}
+        accessibilityRole="button"
+        accessibilityLabel="New group"
+      >
+        <Ionicons name="add" size={28} color={colors.onHero} />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -192,12 +194,6 @@ const makeStyles = (c: ThemeColors) =>
       justifyContent: "center",
       padding: 24,
     },
-    emptyText: {
-      fontSize: 16,
-      color: c.textMuted,
-      marginBottom: 24,
-      textAlign: "center",
-    },
     error: {
       color: c.danger,
       padding: 12,
@@ -205,12 +201,13 @@ const makeStyles = (c: ThemeColors) =>
     },
     listContent: {
       padding: 16,
+      paddingBottom: 96,
     },
     groupItem: {
       backgroundColor: c.surface,
       borderWidth: 1,
       borderColor: c.border,
-      borderRadius: 8,
+      borderRadius: 20,
       padding: 16,
       marginBottom: 12,
     },
@@ -223,18 +220,6 @@ const makeStyles = (c: ThemeColors) =>
       fontSize: 14,
       color: c.textMuted,
       marginTop: 4,
-    },
-    button: {
-      backgroundColor: c.primary,
-      borderRadius: 8,
-      paddingVertical: 14,
-      paddingHorizontal: 32,
-      alignItems: "center",
-    },
-    buttonText: {
-      color: c.onPrimary,
-      fontSize: 16,
-      fontWeight: "600",
     },
     badge: {
       position: "absolute",
@@ -261,9 +246,20 @@ const makeStyles = (c: ThemeColors) =>
       paddingHorizontal: 8,
       paddingVertical: 4,
     },
-    headerButtonText: {
-      fontSize: 14,
-      fontWeight: "600",
-      color: c.text,
+    fab: {
+      position: "absolute",
+      right: 20,
+      bottom: 24,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.hero,
+      elevation: 6,
+      shadowColor: c.text,
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
     },
   });

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from "react-native";
+import { FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "../../components/AppText";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
@@ -7,11 +7,12 @@ import { useAuth } from "../../lib/auth-context";
 import { subscribeToTableChanges, uniqueChannelName } from "../../lib/realtime";
 import {
   NOTIFICATION_COLUMNS,
-  NO_NOTIFICATIONS_TEXT,
   buildNotificationMessage,
   formatRelativeTime,
   type AppNotification,
 } from "../../lib/notifications";
+import { EmptyState } from "../../components/EmptyState";
+import { SkeletonList } from "../../components/Skeleton";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../lib/theme";
 
 const PAGE_SIZE = 100;
@@ -140,9 +141,7 @@ export default function NotificationsScreen() {
       {error && <Text style={styles.error}>{error}</Text>}
 
       {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.text} />
-        </View>
+        <SkeletonList count={4} itemHeight={60} radius={12} label="Loading notifications" />
       ) : (
         <FlatList
           data={notifications}
@@ -157,7 +156,12 @@ export default function NotificationsScreen() {
               progressBackgroundColor={colors.surface}
             />
           }
-          ListEmptyComponent={<Text style={styles.emptyText}>{NO_NOTIFICATIONS_TEXT}</Text>}
+          ListEmptyComponent={
+            <EmptyState
+              title="You're all caught up"
+              description="New activity in your groups will show up here."
+            />
+          }
           renderItem={({ item }) => {
             const unread = !item.read_at;
             return (
@@ -189,11 +193,6 @@ const makeStyles = (c: ThemeColors) =>
       flex: 1,
       backgroundColor: c.background,
     },
-    centered: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-    },
     listContent: {
       padding: 16,
     },
@@ -202,11 +201,6 @@ const makeStyles = (c: ThemeColors) =>
       alignItems: "center",
       justifyContent: "center",
       padding: 24,
-    },
-    emptyText: {
-      fontSize: 16,
-      color: c.textMuted,
-      textAlign: "center",
     },
     error: {
       color: c.danger,

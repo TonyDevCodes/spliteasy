@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text, TextInput } from "../../components/AppText";
 import { Link } from "expo-router";
+import { AuthScreen } from "../../components/AuthScreen";
 import { useAuth } from "../../lib/auth-context";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../lib/theme";
 
@@ -35,7 +36,7 @@ export default function SignupScreen() {
 
   if (submitted) {
     return (
-      <View style={styles.container}>
+      <AuthScreen>
         <Text style={styles.title}>Check your email</Text>
         <Text style={styles.message}>
           We sent a confirmation link to {email}. Confirm your account, then sign in.
@@ -43,12 +44,12 @@ export default function SignupScreen() {
         <Link href="/(auth)/login" asChild>
           <Text style={styles.link}>Back to sign in</Text>
         </Link>
-      </View>
+      </AuthScreen>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <AuthScreen>
       <Text style={styles.title}>Create account</Text>
 
       <Text style={styles.label}>Name (optional)</Text>
@@ -98,18 +99,12 @@ export default function SignupScreen() {
       <Link href="/(auth)/login" asChild>
         <Text style={styles.link}>Already have an account? Sign in</Text>
       </Link>
-    </View>
+    </AuthScreen>
   );
 }
 
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      justifyContent: "center",
-      padding: 24,
-      backgroundColor: c.background,
-    },
     title: {
       fontSize: 24,
       fontWeight: "600",
@@ -124,9 +119,9 @@ const makeStyles = (c: ThemeColors) =>
     input: {
       borderWidth: 1,
       borderColor: c.border,
-      borderRadius: 8,
+      borderRadius: 12,
       paddingHorizontal: 12,
-      paddingVertical: 10,
+      paddingVertical: 12,
       marginBottom: 16,
       fontSize: 16,
       color: c.text,
@@ -143,8 +138,9 @@ const makeStyles = (c: ThemeColors) =>
     },
     button: {
       backgroundColor: c.primary,
-      borderRadius: 8,
-      paddingVertical: 14,
+      borderRadius: 14,
+      height: 52,
+      justifyContent: "center",
       alignItems: "center",
       marginTop: 8,
     },

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text, TextInput } from "../../components/AppText";
 import { Link } from "expo-router";
+import { AuthScreen } from "../../components/AuthScreen";
 import { useAuth } from "../../lib/auth-context";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../lib/theme";
 import { demoCredentials } from "../../lib/authConfig";
@@ -45,7 +46,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <AuthScreen>
       <Text style={styles.title}>Sign in</Text>
 
       <Text style={styles.label}>Email</Text>
@@ -97,18 +98,12 @@ export default function LoginScreen() {
       <Link href="/(auth)/signup" asChild>
         <Text style={styles.link}>Don&apos;t have an account? Sign up</Text>
       </Link>
-    </View>
+    </AuthScreen>
   );
 }
 
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      justifyContent: "center",
-      padding: 24,
-      backgroundColor: c.background,
-    },
     title: {
       fontSize: 24,
       fontWeight: "600",
@@ -123,9 +118,9 @@ const makeStyles = (c: ThemeColors) =>
     input: {
       borderWidth: 1,
       borderColor: c.border,
-      borderRadius: 8,
+      borderRadius: 12,
       paddingHorizontal: 12,
-      paddingVertical: 10,
+      paddingVertical: 12,
       marginBottom: 16,
       fontSize: 16,
       color: c.text,
@@ -137,8 +132,9 @@ const makeStyles = (c: ThemeColors) =>
     },
     button: {
       backgroundColor: c.primary,
-      borderRadius: 8,
-      paddingVertical: 14,
+      borderRadius: 14,
+      height: 52,
+      justifyContent: "center",
       alignItems: "center",
       marginTop: 8,
     },
@@ -150,8 +146,9 @@ const makeStyles = (c: ThemeColors) =>
     demoButton: {
       borderWidth: 1,
       borderColor: c.border,
-      borderRadius: 8,
-      paddingVertical: 14,
+      borderRadius: 14,
+      height: 52,
+      justifyContent: "center",
       alignItems: "center",
       marginTop: 12,
       backgroundColor: c.surface,

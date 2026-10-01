@@ -13,6 +13,8 @@ import {
   WRITE_OFF_LABEL,
   type BalanceLine,
 } from "../../../../lib/settlements";
+import { EmptyState } from "../../../../components/EmptyState";
+import { Skeleton, SkeletonList } from "../../../../components/Skeleton";
 import { ErrorBoundary } from "../../../../lib/ErrorBoundary";
 import { getDisplayName, isDeletedUser, nameForUserId } from "../../../../lib/displayName";
 import { subscribeToTableChanges, uniqueChannelName } from "../../../../lib/realtime";
@@ -550,8 +552,12 @@ export default function GroupDetailScreen() {
       </Modal>
 
       {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.text} />
+        <View accessible accessibilityLabel="Loading group" accessibilityState={{ busy: true }}>
+          <View style={styles.loadingHeader}>
+            <Skeleton width="60%" height={28} />
+            <Skeleton height={64} radius={20} />
+          </View>
+          <SkeletonList count={4} itemHeight={20} radius={8} label="Loading expenses" />
         </View>
       ) : (
         <>
@@ -682,7 +688,10 @@ export default function GroupDetailScreen() {
                         </TouchableOpacity>
                       </View>
                       {balanceLines.length === 0 && (
-                        <Text style={styles.mutedText}>All settled up!</Text>
+                        <EmptyState
+                          title="You're all settled up"
+                          description="No one owes anything in this group."
+                        />
                       )}
                     </>
                   )}
@@ -738,7 +747,14 @@ export default function GroupDetailScreen() {
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.listContent}
               ListEmptyComponent={
-                <Text style={styles.mutedText}>No expenses yet.</Text>
+                <EmptyState
+                  title="No expenses yet"
+                  description="Add the first expense to see who owes what."
+                  action={{
+                    label: "Add expense",
+                    onPress: () => router.push(`/(app)/groups/${id}/expenses/new`),
+                  }}
+                />
               }
               renderItem={({ item }) => {
                 const receiptUrl = item.receipt_url ? receiptUrls[item.receipt_url] : undefined;
@@ -828,6 +844,10 @@ const makeStyles = (c: ThemeColors) =>
     container: {
       flex: 1,
       backgroundColor: c.background,
+    },
+    loadingHeader: {
+      padding: 16,
+      gap: 12,
     },
     centered: {
       flex: 1,
