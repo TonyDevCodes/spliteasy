@@ -3,6 +3,7 @@ import { createClient, getCurrentUser } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { getDisplayName } from '@/lib/displayName'
 import { isReceiptPathForGroup } from '@/lib/receipts'
+import { isValidCategory } from '@/lib/categories'
 import ExpenseForm from './ExpenseForm'
 
 export default async function NewExpensePage({
@@ -55,6 +56,8 @@ export default async function NewExpensePage({
 
     const description = formData.get('description') as string
     const paidBy = formData.get('paidBy') as string
+    const categoryRaw = formData.get('category')
+    const category = isValidCategory(categoryRaw) ? categoryRaw : null
     const amountCents = parseInt(formData.get('amountCents') as string, 10)
     const splitsRaw = formData.get('splits') as string
     const splits = JSON.parse(splitsRaw) as { userId: string; amountCents: number }[]
@@ -76,6 +79,7 @@ export default async function NewExpensePage({
         group_id: groupId,
         paid_by: paidBy,
         description,
+        category,
         amount: amountCents / 100,
         ...(receiptPath ? { receipt_url: receiptPath } : {}),
       })

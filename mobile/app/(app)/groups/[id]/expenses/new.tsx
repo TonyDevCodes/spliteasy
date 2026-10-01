@@ -8,6 +8,9 @@ import { supabase } from "../../../../../lib/supabase";
 import { getDisplayName } from "../../../../../lib/displayName";
 import { DEFAULT_CURRENCY, formatMoney, getCurrencySymbol } from "../../../../../lib/money";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../../../../lib/theme";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { CATEGORIES, DEFAULT_CATEGORY_KEY, type CategoryKey } from "../../../../../lib/categories";
+import { useCategoryTint } from "../../../../../components/CategoryIcon";
 import { useAuth } from "../../../../../lib/auth-context";
 import {
   buildReceiptPath,
@@ -39,6 +42,7 @@ export default function NewExpenseScreen() {
   const authUserId = useAuth().user?.id ?? null;
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTheme();
+  const categoryTint = useCategoryTint();
   const { id: groupId } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -48,6 +52,7 @@ export default function NewExpenseScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState<CategoryKey>(DEFAULT_CATEGORY_KEY);
   const [amount, setAmount] = useState("");
   const [paidBy, setPaidBy] = useState<string | null>(null);
   const [splitMode, setSplitMode] = useState<SplitMode>("equally");
@@ -259,6 +264,7 @@ export default function NewExpenseScreen() {
         group_id: groupId,
         paid_by: paidBy,
         description: description.trim(),
+        category,
         amount: amountCents / 100,
         ...(receiptPath ? { receipt_url: receiptPath } : {}),
       })
@@ -331,6 +337,29 @@ export default function NewExpenseScreen() {
         onChangeText={setDescription}
         placeholder="e.g. Dinner"
       />
+
+      <Text style={styles.label}>Category</Text>
+      <View style={styles.chipRow} accessibilityRole="radiogroup">
+        {CATEGORIES.map((c) => {
+          const selected = category === c.key;
+          return (
+            <TouchableOpacity
+              key={c.key}
+              style={[
+                styles.categoryChip,
+                selected && { borderColor: c.color, backgroundColor: `${c.color}${categoryTint}` },
+              ]}
+              onPress={() => setCategory(c.key)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              accessibilityLabel={c.label}
+            >
+              <Ionicons name={c.ionIcon as keyof typeof Ionicons.glyphMap} size={16} color={c.color} />
+              <Text style={styles.chipText}>{c.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
       <Text style={styles.label}>Total amount ({currencySymbol})</Text>
       <TextInput
@@ -478,6 +507,16 @@ const makeStyles = (c: ThemeColors) =>
       borderRadius: 20,
       paddingVertical: 8,
       paddingHorizontal: 14,
+    },
+    categoryChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      borderWidth: 2,
+      borderColor: c.border,
+      borderRadius: 20,
+      paddingVertical: 6,
+      paddingHorizontal: 12,
     },
     chipActive: {
       backgroundColor: c.primary,

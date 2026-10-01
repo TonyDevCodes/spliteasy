@@ -30,6 +30,7 @@ const expenses: ExportExpense[] = [
     paid_by: "a",
     amount: 90,
     description: 'Dinner, "the good one"\nwith dessert',
+    category: "entertainment",
     created_at: "2026-09-20T12:00:00Z",
   },
   {
@@ -100,7 +101,7 @@ describe("buildExpensesCsv", () => {
   });
 
   it("has the expected columns, one share column per member by display name", () => {
-    expect(rows[0]).toEqual(["Date", "Description", "Amount", "Currency", "Paid by", "Anna", "bob.smith", "José"]);
+    expect(rows[0]).toEqual(["Date", "Description", "Category", "Amount", "Currency", "Paid by", "Anna", "bob.smith", "José"]);
   });
 
   it("never contains raw email addresses", () => {
@@ -110,20 +111,20 @@ describe("buildExpensesCsv", () => {
   it("escapes commas, quotes and newlines in descriptions", () => {
     expect(csv).toContain('"Dinner, ""the good one""\nwith dessert"');
     expect(rows[1][1]).toBe('Dinner, "the good one"\nwith dessert');
-    expect(rows[1]).toHaveLength(8);
+    expect(rows[1]).toHaveLength(9);
   });
 
   it("writes plain dot-decimal amounts and the group currency", () => {
-    expect(rows[1].slice(0, 5)).toEqual(["2026-09-20", rows[1][1], "90.00", "EUR", "Anna"]);
-    expect(rows[2].slice(2, 5)).toEqual(["10.50", "EUR", "bob.smith"]);
+    expect(rows[1].slice(0, 6)).toEqual(["2026-09-20", rows[1][1], "Entertainment", "90.00", "EUR", "Anna"]);
+    expect(rows[2].slice(3, 6)).toEqual(["10.50", "EUR", "bob.smith"]);
   });
 
   it("lists each member's share, and the shares add up to the amount", () => {
-    expect(rows[1].slice(5)).toEqual(["50.00", "25.50", "14.50"]);
-    expect(rows[2].slice(5)).toEqual(["5.25", "5.25", "0.00"]);
+    expect(rows[1].slice(6)).toEqual(["50.00", "25.50", "14.50"]);
+    expect(rows[2].slice(6)).toEqual(["5.25", "5.25", "0.00"]);
     for (const row of rows.slice(1)) {
-      const total = row.slice(5).reduce((sum, share) => sum + Number(share), 0);
-      expect(total).toBeCloseTo(Number(row[2]), 2);
+      const total = row.slice(6).reduce((sum, share) => sum + Number(share), 0);
+      expect(total).toBeCloseTo(Number(row[3]), 2);
     }
   });
 
@@ -131,7 +132,7 @@ describe("buildExpensesCsv", () => {
     const empty = buildExpensesCsv(group, [], members, []);
     expect(empty.startsWith(CSV_BOM)).toBe(true);
     expect(parseCsv(empty.slice(1))).toEqual([
-      ["Date", "Description", "Amount", "Currency", "Paid by", "Anna", "bob.smith", "José"],
+      ["Date", "Description", "Category", "Amount", "Currency", "Paid by", "Anna", "bob.smith", "José"],
       ["No expenses"],
     ]);
   });
@@ -148,8 +149,8 @@ describe("deleted users in exports", () => {
 
   it("names the deleted payer and keeps their share in its own column", () => {
     const rows = parseCsv(buildExpensesCsv(group, deletedExpenses, members, deletedSplits).slice(1));
-    expect(rows[0]).toEqual(["Date", "Description", "Amount", "Currency", "Paid by", "Anna", "bob.smith", "José", "Deleted user"]);
-    expect(rows[1]).toEqual(["2026-09-20", "Taxi", "30.00", "EUR", "Deleted user", "20.00", "0.00", "0.00", "10.00"]);
+    expect(rows[0]).toEqual(["Date", "Description", "Category", "Amount", "Currency", "Paid by", "Anna", "bob.smith", "José", "Deleted user"]);
+    expect(rows[1]).toEqual(["2026-09-20", "Taxi", "Transport", "30.00", "EUR", "Deleted user", "20.00", "0.00", "0.00", "10.00"]);
   });
 
   it("lists settlements with a deleted user by name", () => {
@@ -261,7 +262,10 @@ describe("buildGroupSummary", () => {
       computeGroupBalances(expenses, splits, []),
       "b"
     );
-    expect(summary.expenseRows[0][3]).toBe("$90.00");
+    expect(summary.expenseColumns).toEqual(["Date", "Description", "Category", "Paid by", "Amount"]);
+    expect(summary.expenseRows[0][2]).toBe("Entertainment");
+    expect(summary.expenseRows[0][4]).toBe("$90.00");
+    expect(summary.expenseRows[1][2]).toBe("Transport");
     expect(summary.yourBalance[0]).toBe("You owe $20.25");
   });
 
@@ -286,7 +290,7 @@ describe("buildGroupSummary", () => {
 
   it("handles an empty group", () => {
     const summary = buildGroupSummary(group, [], [], members, computeGroupBalances([], [], []), "a");
-    expect(summary.expenseRows).toEqual([["No expenses", "", "", ""]]);
+    expect(summary.expenseRows).toEqual([["No expenses", "", "", "", ""]]);
     expect(summary.settlementRows).toEqual([["No settlements", "", "", "", ""]]);
     expect(summary.yourBalance).toEqual(["You're all settled up!"]);
   });

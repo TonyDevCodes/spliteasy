@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatMoney, getCurrencySymbol } from '@/lib/money'
 import { createClient } from '@/lib/supabase/client'
+import { CATEGORIES, DEFAULT_CATEGORY_KEY, type CategoryKey } from '@/lib/categories'
+import { categoryGlyph, categoryTint } from '@/components/CategoryIcon'
 import {
   buildReceiptPath,
   RECEIPT_HEADER_BYTES,
@@ -31,6 +33,7 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
   const currencySymbol = getCurrencySymbol(currency)
   const router = useRouter()
   const [description, setDescription] = useState('')
+  const [category, setCategory] = useState<CategoryKey>(DEFAULT_CATEGORY_KEY)
   const [amount, setAmount] = useState('')
   const [paidBy, setPaidBy] = useState(currentUserId)
   const [splitMode, setSplitMode] = useState<'equally' | 'custom'>('equally')
@@ -128,6 +131,7 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
 
     const formData = new FormData()
     formData.set('description', description.trim())
+    formData.set('category', category)
     formData.set('paidBy', paidBy)
     formData.set('amountCents', String(amountCents))
     formData.set('splits', JSON.stringify(splits))
@@ -166,6 +170,34 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
           className="w-full rounded-md border border-border bg-input-background px-3 py-2 text-text"
           placeholder="e.g. Dinner"
         />
+      </div>
+
+      <div role="radiogroup" aria-labelledby="category-label">
+        <span id="category-label" className="block text-sm font-medium mb-1">Category</span>
+        <div className="flex flex-wrap gap-2">
+          {CATEGORIES.map((c) => {
+            const selected = category === c.key
+            return (
+              <button
+                key={c.key}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => setCategory(c.key)}
+                className="flex items-center gap-2 rounded-xl border-2 px-3 py-1.5 text-sm text-text"
+                style={{
+                  borderColor: selected ? c.color : 'var(--border)',
+                  backgroundColor: selected ? categoryTint(c.color) : 'transparent',
+                }}
+              >
+                <span style={{ color: c.color }} className="flex">
+                  {categoryGlyph(c, 16)}
+                </span>
+                {c.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       <div>

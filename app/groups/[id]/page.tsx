@@ -17,6 +17,8 @@ import ExportMenu from "./ExportMenu";
 import ReceiptThumbnail from "./ReceiptThumbnail";
 import { createInvite } from "./actions";
 import { EmptyState } from "@/components/EmptyState";
+import CategoryIcon from "@/components/CategoryIcon";
+import { categoryForExpense } from "@/lib/categories";
 import { SignOutButton } from "@/app/sign-out-button";
 import { NotificationBell } from "@/app/notification-bell";
 
@@ -64,7 +66,7 @@ export default async function GroupDetailPage({
 
   const { data: expenses, error: expensesError } = await supabase
     .from("expenses")
-    .select("id, paid_by, amount, description, created_at, receipt_url")
+    .select("id, paid_by, amount, description, category, created_at, receipt_url")
     .eq("group_id", id)
     .order("created_at", { ascending: false });
 
@@ -266,7 +268,8 @@ export default async function GroupDetailPage({
                     key={e.id}
                     className="flex items-center justify-between gap-3 text-sm"
                   >
-                    <span className="flex flex-col gap-1 text-text">
+                    <CategoryIcon category={categoryForExpense(e)} />
+                    <span className="flex flex-1 flex-col gap-1 text-text">
                       <span>
                         {e.description}
                         <span className="text-text-muted">

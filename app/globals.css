@@ -30,6 +30,13 @@
 /* dark: variants follow the resolved theme, not only the OS setting. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+/* Category icon background strength (see components/CategoryIcon.tsx). */
+:root { --category-tint: 15%; }
+:root[data-theme="dark"] { --category-tint: 22%; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --category-tint: 22%; }
+}
+
 body {
   background: var(--background);
   color: var(--text);

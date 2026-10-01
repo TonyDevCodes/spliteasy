@@ -29,6 +29,8 @@ import { shareCsv, sharePdf } from "../../../../lib/exportFiles";
 import { DEFAULT_CURRENCY, formatMoney, SUPPORTED_CURRENCIES } from "../../../../lib/money";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../../../lib/theme";
 import { useAuth } from "../../../../lib/auth-context";
+import { CategoryIcon } from "../../../../components/CategoryIcon";
+import { categoryForExpense } from "../../../../lib/categories";
 import { inviteUrl } from "../../../../lib/invites";
 import {
   collectReceiptPaths,
@@ -72,6 +74,7 @@ type Expense = {
   paid_by: string | null;
   amount: number;
   description: string;
+  category: string | null;
   created_at: string;
   receipt_url: string | null;
 };
@@ -193,7 +196,7 @@ export default function GroupDetailScreen() {
         .returns<MemberRow[]>(),
       supabase
         .from("expenses")
-        .select("id, paid_by, amount, description, created_at, receipt_url")
+        .select("id, paid_by, amount, description, category, created_at, receipt_url")
         .eq("group_id", groupId)
         .order("created_at", { ascending: false })
         .returns<Expense[]>(),
@@ -760,6 +763,7 @@ export default function GroupDetailScreen() {
                 const receiptUrl = item.receipt_url ? receiptUrls[item.receipt_url] : undefined;
                 return (
                   <View style={styles.expenseRow}>
+                    <CategoryIcon category={categoryForExpense(item)} />
                     <View style={styles.expenseRowLeft}>
                       <Text style={styles.expenseDescription}>{item.description}</Text>
                       <Text style={styles.mutedText}>
@@ -994,7 +998,7 @@ const makeStyles = (c: ThemeColors) =>
     },
     expenseRowLeft: {
       flex: 1,
-      marginRight: 8,
+      marginHorizontal: 12,
     },
     expenseDescription: {
       fontSize: 15,

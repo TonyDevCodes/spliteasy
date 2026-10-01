@@ -9,6 +9,7 @@ import {
 } from "./settlements";
 import { DELETED_USER_KEY, getDisplayName, isDeletedUser, nameForUserId, userKey } from "./displayName";
 import { formatMoney } from "./money";
+import { categoryForExpense } from "./categories";
 
 export type ExportGroup = {
   name: string;
@@ -33,6 +34,8 @@ export type ExportExpense = {
   paid_by: string | null;
   amount: number | string;
   description: string;
+  /** Stored category key; old expenses without one get a guess from the description. */
+  category?: string | null;
   created_at: string;
 };
 
@@ -157,7 +160,7 @@ export function computeGroupBalances(
 }
 
 /**
- * One row per expense: Date, Description, Amount, Currency, Paid by, then one
+ * One row per expense: Date, Description, Category, Amount, Currency, Paid by, then one
  * column per member with that member's share of the expense.
  */
 export function buildExpensesCsv(
@@ -172,7 +175,7 @@ export function buildExpensesCsv(
     ...members.map((m) => m.id),
     ...(splits.some((s) => isDeletedUser(s.user_id)) ? [DELETED_USER_KEY] : []),
   ];
-  const header = ["Date", "Description", "Amount", "Currency", "Paid by", ...shareColumns.map((id) => nameOf(id))];
+  const header = ["Date", "Description", "Category", "Amount", "Currency", "Paid by", ...shareColumns.map((id) => nameOf(id))];
 
   if (expenses.length === 0) {
     return toCsv([header.map(escapeCsvText), [escapeCsvText(NO_EXPENSES_TEXT)]]);
@@ -188,6 +191,7 @@ export function buildExpensesCsv(
   const rows = expenses.map((e) => [
     localDay(e.created_at),
     escapeCsvText(e.description),
+    escapeCsvText(categoryForExpense(e).label),
     formatCsvAmount(Number(e.amount)),
     group.currency,
     escapeCsvText(nameOf(e.paid_by)),
@@ -278,10 +282,16 @@ export function buildGroupSummary(
     yourBalance,
     detailed: balances.detailed.length ? balances.detailed.map(describe) : [SETTLED_UP_TEXT],
     simplified: balances.simplified.length ? balances.simplified.map(describe) : [SETTLED_UP_TEXT],
-    expenseColumns: ["Date", "Description", "Paid by", "Amount"],
+    expenseColumns: ["Date", "Description", "Category", "Paid by", "Amount"],
     expenseRows: expenses.length
-      ? expenses.map((e) => [localDay(e.created_at), e.description, nameOf(e.paid_by), money(Number(e.amount))])
-      : [[NO_EXPENSES_TEXT, "", "", ""]],
+      ? expenses.map((e) => [
+          localDay(e.created_at),
+          e.description,
+          categoryForExpense(e).label,
+          nameOf(e.paid_by),
+          money(Number(e.amount)),
+        ])
+      : [[NO_EXPENSES_TEXT, "", "", "", ""]],
     reconciliationNote: RECONCILIATION_NOTE,
     settlementColumns: ["Date", "From", "To", "Amount", "Type"],
     settlementRows: settlements.length

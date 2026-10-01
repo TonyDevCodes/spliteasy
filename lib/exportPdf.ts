@@ -101,7 +101,7 @@ export async function buildSummaryPdf(summary: GroupSummary): Promise<Blob> {
     styles: { font: FONT_NAME, fontSize: 9, textColor: LIGHT.text },
     headStyles: { fontStyle: "bold", fillColor: LIGHT.primary, textColor: LIGHT.onPrimary },
     alternateRowStyles: { fillColor: LIGHT.surfaceHover },
-    columnStyles: { 3: { halign: "right" } },
+    columnStyles: { 4: { halign: "right" } },
   });
 
   y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5;
