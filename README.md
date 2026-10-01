@@ -147,7 +147,7 @@ supabase/migrations/  Database schema, RLS policies, functions and triggers
 npm test
 ```
 
-Runs the Vitest suite: 80 tests in 7 files covering balance calculation, debt simplification, write-offs,
+Runs the Vitest suite: 124 tests in 11 files covering balance calculation, debt simplification, write-offs,
 money formatting, display names (including the "Deleted user" fallback), CSV/PDF export content,
 notifications and theme handling.
 
