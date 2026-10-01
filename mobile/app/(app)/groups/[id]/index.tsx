@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Image, Modal, Pressable, Share, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "../../../../components/AppText";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { supabase } from "../../../../lib/supabase";
 import {
@@ -26,7 +27,8 @@ import {
   exportFileName,
 } from "../../../../lib/export";
 import { shareCsv, sharePdf } from "../../../../lib/exportFiles";
-import { DEFAULT_CURRENCY, formatMoney, SUPPORTED_CURRENCIES } from "../../../../lib/money";
+import { CURRENCY_CHANGE_WARNING, DEFAULT_CURRENCY, formatMoney } from "../../../../lib/money";
+import { CurrencyPicker } from "../../../../components/CurrencyPicker";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../../../lib/theme";
 import { useAuth } from "../../../../lib/auth-context";
 import { CategoryIcon } from "../../../../components/CategoryIcon";
@@ -375,6 +377,15 @@ export default function GroupDetailScreen() {
     setSettlingKey(null);
   }
 
+  // Changing the currency does not convert amounts, so ask first.
+  function confirmChangeCurrency(nextCurrency: string) {
+    if (!group || nextCurrency === group.currency) return;
+    Alert.alert(`Change currency to ${nextCurrency}?`, CURRENCY_CHANGE_WARNING, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Change currency", onPress: () => handleChangeCurrency(nextCurrency) },
+    ]);
+  }
+
   async function handleChangeCurrency(nextCurrency: string) {
     if (!id || !group || nextCurrency === group.currency) return;
 
@@ -476,21 +487,31 @@ export default function GroupDetailScreen() {
       <Stack.Screen
         options={{
           title: group?.name ?? "Group",
+          headerTitle: () => (
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {group?.name ?? "Group"}
+            </Text>
+          ),
           headerRight: () => (
             <View style={styles.headerRightRow}>
               {group && (
-                <TouchableOpacity onPress={openExport} style={styles.headerButton}>
-                  <Text style={styles.headerButtonText}>Export</Text>
-                </TouchableOpacity>
-              )}
-              {tab === "expenses" && (
                 <TouchableOpacity
-                  onPress={() => router.push(`/(app)/groups/${id}/expenses/new`)}
-                  style={styles.headerButton}
+                  onPress={openExport}
+                  style={styles.headerIconButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Export"
                 >
-                  <Text style={styles.headerButtonText}>+ Add expense</Text>
+                  <Ionicons name="share-outline" size={24} color={colors.text} />
                 </TouchableOpacity>
               )}
+              <TouchableOpacity
+                onPress={() => router.push(`/(app)/groups/${id}/expenses/new`)}
+                style={styles.headerIconButton}
+                accessibilityRole="button"
+                accessibilityLabel="Add expense"
+              >
+                <Ionicons name="add-circle-outline" size={26} color={colors.text} />
+              </TouchableOpacity>
             </View>
           ),
         }}
@@ -596,25 +617,11 @@ export default function GroupDetailScreen() {
                   <Text style={styles.sectionTitle}>Currency</Text>
                   {group && isAdmin ? (
                     <>
-                      <View style={styles.chipRow}>
-                        {SUPPORTED_CURRENCIES.map((c) => (
-                          <TouchableOpacity
-                            key={c}
-                            style={[styles.chip, group.currency === c && styles.chipActive]}
-                            onPress={() => handleChangeCurrency(c)}
-                            disabled={savingCurrency}
-                          >
-                            <Text
-                              style={[
-                                styles.chipText,
-                                group.currency === c && styles.chipTextActive,
-                              ]}
-                            >
-                              {c}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
+                      <CurrencyPicker
+                        value={group.currency}
+                        onChange={confirmChangeCurrency}
+                        disabled={savingCurrency}
+                      />
                       {currencyError && <Text style={styles.error}>{currencyError}</Text>}
                     </>
                   ) : (
@@ -1135,13 +1142,16 @@ const makeStyles = (c: ThemeColors) =>
       fontWeight: "600",
       color: c.text,
     },
-    headerButton: {
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-    },
-    headerButtonText: {
-      fontSize: 14,
-      fontWeight: "600",
+    headerTitle: {
+      flex: 1,
+      fontSize: 17,
+      fontWeight: "700",
       color: c.text,
+    },
+    headerIconButton: {
+      width: 36,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
     },
   });

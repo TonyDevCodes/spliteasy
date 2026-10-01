@@ -3,7 +3,8 @@ import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-nat
 import { Text, TextInput } from "../../../components/AppText";
 import { Stack, useRouter } from "expo-router";
 import { supabase } from "../../../lib/supabase";
-import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from "../../../lib/money";
+import { DEFAULT_CURRENCY } from "../../../lib/money";
+import { CurrencyPicker } from "../../../components/CurrencyPicker";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../../lib/theme";
 import { useAuth } from "../../../lib/auth-context";
 
@@ -79,20 +80,8 @@ export default function NewGroupScreen() {
       />
 
       <Text style={styles.label}>Currency</Text>
-      <View style={styles.chipRow}>
-        {SUPPORTED_CURRENCIES.map((c) => (
-          <TouchableOpacity
-            key={c}
-            style={[styles.chip, currency === c && styles.chipActive]}
-            onPress={() => setCurrency(c)}
-          >
-            <Text
-              style={[styles.chipText, currency === c && styles.chipTextActive]}
-            >
-              {c}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.currencyField}>
+        <CurrencyPicker value={currency} onChange={setCurrency} />
       </View>
 
       {error && <Text style={styles.error}>{error}</Text>}
@@ -142,30 +131,8 @@ const makeStyles = (c: ThemeColors) =>
       color: c.danger,
       marginBottom: 12,
     },
-    chipRow: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 8,
-      marginBottom: 16,
-    },
-    chip: {
-      borderWidth: 1,
-      borderColor: c.border,
-      borderRadius: 20,
-      paddingVertical: 8,
-      paddingHorizontal: 14,
-    },
-    chipActive: {
-      backgroundColor: c.primary,
-      borderColor: c.primary,
-    },
-    chipText: {
-      fontSize: 14,
-      color: c.text,
-    },
-    chipTextActive: {
-      color: c.onPrimary,
-      fontWeight: "600",
+    currencyField: {
+      marginBottom: 8,
     },
     button: {
       backgroundColor: c.primary,
