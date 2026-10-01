@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { AuthShell } from "@/components/AuthShell";
 import { demoCredentials, isFlagEnabled, nextStepAfterSignUp } from "@/lib/authConfig";
 
 // Off in the public demo: no custom email domain is configured.
@@ -128,12 +129,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-background">
-      <div className="w-full max-w-sm rounded-lg border border-border bg-surface p-6">
-        <h1 className="mb-6 text-xl font-semibold text-text">
-          {mode === "sign-in" ? "Sign in" : "Sign up"}
-        </h1>
-
+    <AuthShell title={mode === "sign-in" ? "Sign in" : "Sign up"}>
+      <div className="w-full">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {mode === "sign-up" && (
             <div className="flex flex-col gap-1">
@@ -145,7 +142,7 @@ export default function LoginPage() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="rounded border border-border bg-input-background px-3 py-2 text-text outline-none focus:border-text-muted"
+                className="rounded-xl border border-border bg-input-background px-3 py-3 text-text outline-none focus:border-text-muted"
               />
             </div>
           )}
@@ -160,7 +157,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="rounded border border-border bg-input-background px-3 py-2 text-text outline-none focus:border-text-muted"
+              className="rounded-xl border border-border bg-input-background px-3 py-3 text-text outline-none focus:border-text-muted"
             />
           </div>
 
@@ -175,7 +172,7 @@ export default function LoginPage() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="rounded border border-border bg-input-background px-3 py-2 text-text outline-none focus:border-text-muted"
+              className="rounded-xl border border-border bg-input-background px-3 py-3 text-text outline-none focus:border-text-muted"
             />
           </div>
 
@@ -185,7 +182,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="rounded-full bg-primary px-5 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:bg-disabled disabled:text-on-disabled"
+            className="h-12 rounded-[14px] bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-hover disabled:bg-disabled disabled:text-on-disabled"
           >
             {mode === "sign-in" ? "Sign in" : "Sign up"}
           </button>
@@ -196,7 +193,7 @@ export default function LoginPage() {
             type="button"
             onClick={handleMagicLink}
             disabled={loading}
-            className="mt-3 w-full rounded-full border border-border px-5 py-2 text-sm font-medium text-text transition-colors hover:bg-surface-hover disabled:bg-disabled disabled:text-on-disabled"
+            className="mt-3 h-12 w-full rounded-[14px] border border-border px-5 text-sm font-semibold text-text transition-colors hover:bg-surface-hover disabled:bg-disabled disabled:text-on-disabled"
           >
             Send magic link
           </button>
@@ -207,7 +204,7 @@ export default function LoginPage() {
             type="button"
             onClick={handleDemo}
             disabled={loading}
-            className="mt-3 w-full rounded-full border border-border px-5 py-2 text-sm font-medium text-text transition-colors hover:bg-surface-hover disabled:bg-disabled disabled:text-on-disabled"
+            className="mt-3 h-12 w-full rounded-[14px] border border-border px-5 text-sm font-semibold text-text transition-colors hover:bg-surface-hover disabled:bg-disabled disabled:text-on-disabled lg:border-[1.5px] lg:border-primary lg:text-primary lg:dark:text-link lg:disabled:border-disabled lg:disabled:text-on-disabled lg:dark:disabled:text-on-disabled"
           >
             Try the demo
           </button>
@@ -228,6 +225,6 @@ export default function LoginPage() {
           </button>
         </p>
       </div>
-    </div>
+    </AuthShell>
   );
 }

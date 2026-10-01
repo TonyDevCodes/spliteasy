@@ -16,6 +16,7 @@ import CurrencySelector from "./CurrencySelector";
 import ExportMenu from "./ExportMenu";
 import ReceiptThumbnail from "./ReceiptThumbnail";
 import { createInvite } from "./actions";
+import { EmptyState } from "@/components/EmptyState";
 import { SignOutButton } from "@/app/sign-out-button";
 import { NotificationBell } from "@/app/notification-bell";
 
@@ -251,9 +252,11 @@ export default async function GroupDetailPage({
             Expenses
           </h2>
           {!hasExpenses ? (
-            <p className="text-sm text-text-muted">
-              No expenses yet.
-            </p>
+            <EmptyState
+              title="No expenses yet"
+              description="Add the first expense to see who owes what."
+              action={{ label: "Add expense", href: `/groups/${group.id}/expenses/new` }}
+            />
           ) : (
             <ul className="flex flex-col gap-2">
               {(expenses ?? []).map((e) => {

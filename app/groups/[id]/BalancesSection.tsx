@@ -7,6 +7,7 @@ import {
   WRITE_OFF_LABEL,
   type BalanceLine,
 } from "@/lib/settlements";
+import { EmptyState } from "@/components/EmptyState";
 import { formatMoney } from "@/lib/money";
 import { isDeletedUser, nameForUserId } from "@/lib/displayName";
 import { recordSettlement, recordWriteOff } from "./actions";
@@ -33,16 +34,15 @@ export default function BalancesSection({
   const [view, setView] = useState<"detailed" | "simplified">("detailed");
   const lines = view === "detailed" ? detailedLines : simplifiedLines;
 
+  // The expenses list below already explains an empty group.
+  if (!hasExpenses) return null;
+
   return (
     <div className="flex flex-col gap-2 border-t border-border pt-4">
       <h2 className="text-sm font-semibold text-text">
         All balances in this group
       </h2>
-      {!hasExpenses ? (
-        <p className="text-sm text-text-muted">
-          No expenses yet.
-        </p>
-      ) : (
+      {(
         <>
           <div className="flex gap-2">
             <button
@@ -70,9 +70,10 @@ export default function BalancesSection({
           </div>
 
           {lines.length === 0 ? (
-            <p className="text-sm text-text-muted">
-              All settled up!
-            </p>
+            <EmptyState
+              title="You're all settled up"
+              description="No one owes anything in this group."
+            />
           ) : (
             <ul className="flex flex-col gap-2">
               {lines.map((line, idx) => (

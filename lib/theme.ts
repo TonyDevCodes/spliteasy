@@ -28,6 +28,8 @@ export const themeColors = {
     inputBackground: "#ffffff",
     placeholder: "#6b6f8c",
     overlay: "#14162b66",
+    hero: "#4338ca",
+    onHero: "#ffffff",
   },
   dark: {
     background: "#0b0c1a",
@@ -48,6 +50,8 @@ export const themeColors = {
     inputBackground: "#202340",
     placeholder: "#9a9ebe",
     overlay: "#05060fb3",
+    hero: "#4338ca",
+    onHero: "#ffffff",
   },
 } as const;
 

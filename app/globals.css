@@ -22,6 +22,8 @@
   --color-input-background: var(--input-background);
   --color-placeholder: var(--placeholder);
   --color-overlay: var(--overlay);
+  --color-hero: var(--hero);
+  --color-on-hero: var(--on-hero);
   --font-sans: var(--font-jakarta);
 }
 
@@ -37,4 +39,33 @@ body {
 input::placeholder,
 textarea::placeholder {
   color: var(--placeholder);
+}
+
+/* Desktop sign-in/sign-up: a themed focus ring for keyboard users instead of
+   the browser default. */
+@media (min-width: 1024px) {
+  .auth-shell :is(a, button):focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.skeleton {
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
 }

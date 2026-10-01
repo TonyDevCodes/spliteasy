@@ -49,6 +49,7 @@ describe("theme colors", () => {
     ["link", "surface"],
     ["onPrimary", "primary"],
     ["onPrimary", "primaryHover"],
+    ["onHero", "hero"],
     ["onDisabled", "disabled"],
   ];
 

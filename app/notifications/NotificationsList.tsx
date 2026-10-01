@@ -3,16 +3,29 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { EmptyState } from "@/components/EmptyState";
+import { Skeleton } from "@/components/Skeleton";
 import { subscribeToTableChanges, uniqueChannelName } from "@/lib/realtime";
 import {
   NOTIFICATION_COLUMNS,
-  NO_NOTIFICATIONS_TEXT,
   buildNotificationMessage,
   formatRelativeTime,
   type AppNotification,
 } from "@/lib/notifications";
 
 const PAGE_SIZE = 100;
+
+export function NotificationsSkeleton() {
+  return (
+    <ul className="flex flex-col gap-2" aria-busy="true" aria-label="Loading notifications">
+      {[0, 1, 2, 3].map((i) => (
+        <li key={i}>
+          <Skeleton className="h-14 w-full" />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default function NotificationsList({ userId }: { userId: string }) {
   const router = useRouter();
@@ -117,9 +130,12 @@ export default function NotificationsList({ userId }: { userId: string }) {
       {error && <p className="text-sm text-danger">{error}</p>}
 
       {loading ? (
-        <p className="text-sm text-text-muted">Loading…</p>
+        <NotificationsSkeleton />
       ) : notifications.length === 0 ? (
-        <p className="py-8 text-center text-text-muted">{NO_NOTIFICATIONS_TEXT}</p>
+        <EmptyState
+          title="You're all caught up"
+          description="New activity in your groups will show up here."
+        />
       ) : (
         <ul className="flex flex-col gap-2">
           {notifications.map((n) => (
