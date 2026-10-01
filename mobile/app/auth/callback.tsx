@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { Text } from "../../components/AppText";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";

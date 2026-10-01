@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { Text } from "./AppText";
 import Svg, { Path } from "react-native-svg";
 import { useTheme } from "../lib/theme";
 
@@ -45,7 +46,8 @@ export function Logo({ size = 28, withWordmark = false }: LogoProps) {
     <View style={styles.row}>
       {mark}
       <Text style={[styles.wordmark, { fontSize, color: colors.text }]}>
-        Split<Text style={{ color: theme === "dark" ? colors.link : colors.primary }}>Easy</Text>
+        <Text style={styles.part}>Split</Text>
+        <Text style={[styles.part, { color: theme === "dark" ? colors.link : colors.primary }]}>Easy</Text>
       </Text>
     </View>
   );
@@ -54,4 +56,5 @@ export function Logo({ size = 28, withWordmark = false }: LogoProps) {
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 8 },
   wordmark: { fontWeight: "800" },
+  part: { fontWeight: "800" },
 });

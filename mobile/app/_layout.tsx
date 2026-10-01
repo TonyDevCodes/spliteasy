@@ -17,9 +17,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "../lib/auth-context";
 import { ThemeProvider, useTheme, useThemedStyles, type ThemeColors } from "../lib/theme";
 import { takePendingRedirect } from "../lib/pendingRedirect";
-import { applyDefaultFont, fontAssets } from "../lib/fonts";
+import { fontAssets } from "../lib/fonts";
 
-applyDefaultFont();
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootNavigation() {

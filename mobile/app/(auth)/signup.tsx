@@ -1,12 +1,6 @@
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Text, TextInput } from "../../components/AppText";
 import { Link } from "expo-router";
 import { useAuth } from "../../lib/auth-context";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../lib/theme";
@@ -46,8 +40,8 @@ export default function SignupScreen() {
         <Text style={styles.message}>
           We sent a confirmation link to {email}. Confirm your account, then sign in.
         </Text>
-        <Link href="/(auth)/login" style={styles.link}>
-          Back to sign in
+        <Link href="/(auth)/login" asChild>
+          <Text style={styles.link}>Back to sign in</Text>
         </Link>
       </View>
     );
@@ -101,8 +95,8 @@ export default function SignupScreen() {
         )}
       </TouchableOpacity>
 
-      <Link href="/(auth)/login" style={styles.link}>
-        Already have an account? Sign in
+      <Link href="/(auth)/login" asChild>
+        <Text style={styles.link}>Already have an account? Sign in</Text>
       </Link>
     </View>
   );

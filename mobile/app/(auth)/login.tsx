@@ -1,12 +1,6 @@
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Text, TextInput } from "../../components/AppText";
 import { Link } from "expo-router";
 import { useAuth } from "../../lib/auth-context";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../lib/theme";
@@ -100,8 +94,8 @@ export default function LoginScreen() {
         </TouchableOpacity>
       )}
 
-      <Link href="/(auth)/signup" style={styles.link}>
-        Don&apos;t have an account? Sign up
+      <Link href="/(auth)/signup" asChild>
+        <Text style={styles.link}>Don&apos;t have an account? Sign up</Text>
       </Link>
     </View>
   );

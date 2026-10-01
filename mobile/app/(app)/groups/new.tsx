@@ -1,12 +1,6 @@
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Text, TextInput } from "../../../components/AppText";
 import { Stack, useRouter } from "expo-router";
 import { supabase } from "../../../lib/supabase";
 import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from "../../../lib/money";
