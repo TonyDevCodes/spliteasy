@@ -29,11 +29,22 @@ export async function createInvite(formData: FormData) {
   redirect(`/groups/${groupId}`);
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function readIdempotencyKey(formData: FormData): string | null {
+  const key = formData.get("idempotencyKey");
+  return typeof key === "string" && UUID_RE.test(key) ? key : null;
+}
+
+// 23505 on (group_id, idempotency_key) means this exact submit already landed.
+const UNIQUE_VIOLATION = "23505";
+
 export async function recordSettlement(formData: FormData) {
   const groupId = formData.get("groupId") as string;
   const fromUser = formData.get("fromUser") as string;
   const toUser = formData.get("toUser") as string;
   const amount = formData.get("amount") as string;
+  const idempotencyKey = readIdempotencyKey(formData);
 
   const supabase = await createClient();
   const user = await getCurrentUser(supabase);
@@ -47,9 +58,10 @@ export async function recordSettlement(formData: FormData) {
     from_user: fromUser,
     to_user: toUser,
     amount: parseFloat(amount),
+    idempotency_key: idempotencyKey,
   });
 
-  if (error) {
+  if (error && error.code !== UNIQUE_VIOLATION) {
     console.error("Record settlement error:", error);
   }
 
@@ -63,6 +75,7 @@ export async function recordWriteOff(formData: FormData) {
   const fromUser = formData.get("fromUser") as string;
   const toUser = formData.get("toUser") as string;
   const amount = formData.get("amount") as string;
+  const idempotencyKey = readIdempotencyKey(formData);
 
   const supabase = await createClient();
   const user = await getCurrentUser(supabase);
@@ -71,11 +84,12 @@ export async function recordWriteOff(formData: FormData) {
     redirect("/login");
   }
 
-  const { error } = await supabase
-    .from("settlements")
-    .insert(buildWriteOffRow(groupId, { from: fromUser, to: toUser, amount: parseFloat(amount) }));
+  const { error } = await supabase.from("settlements").insert({
+    ...buildWriteOffRow(groupId, { from: fromUser, to: toUser, amount: parseFloat(amount) }),
+    idempotency_key: idempotencyKey,
+  });
 
-  if (error) {
+  if (error && error.code !== UNIQUE_VIOLATION) {
     console.error("Record write-off error:", error);
   }
 

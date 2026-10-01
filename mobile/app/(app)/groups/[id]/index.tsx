@@ -111,6 +111,17 @@ const EXPORT_OPTIONS: { kind: ExportKind; label: string }[] = [
   { kind: "pdf", label: "PDF summary" },
 ];
 
+// Hermes may lack crypto.randomUUID; the key only needs to be unique, not secret.
+function newIdempotencyKey(): string {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
 export default function GroupDetailScreen() {
   const authUserId = useAuth().user?.id ?? null;
   const styles = useThemedStyles(makeStyles);
@@ -137,6 +148,8 @@ export default function GroupDetailScreen() {
   const [settlingKey, setSettlingKey] = useState<string | null>(null);
   // Synchronous lock: state updates are async, so a fast double tap would slip through.
   const settlingRef = useRef(false);
+  // One idempotency key per submit intent (kind + line); dropped on success.
+  const idempotencyKeysRef = useRef<Record<string, string>>({});
   const [generatingInvite, setGeneratingInvite] = useState(false);
   const [currencyError, setCurrencyError] = useState<string | null>(null);
   const [savingCurrency, setSavingCurrency] = useState(false);
@@ -331,6 +344,10 @@ export default function GroupDetailScreen() {
   const myNet = Math.round((totalOwedToMe - totalOwedByMe) * 100) / 100;
   const currency = group?.currency ?? DEFAULT_CURRENCY;
 
+  function idempotencyKeyFor(intent: string): string {
+    return (idempotencyKeysRef.current[intent] ??= newIdempotencyKey());
+  }
+
   async function handleSettle(line: BalanceLine) {
     if (!id || settlingRef.current) return;
     settlingRef.current = true;
@@ -342,12 +359,15 @@ export default function GroupDetailScreen() {
       from_user: line.from,
       to_user: line.to,
       amount: line.amount,
+      idempotency_key: idempotencyKeyFor(`settle-${key}`),
     });
 
-    if (settleError) {
+    // 23505: this exact submit already landed, so treat it as success.
+    if (settleError && settleError.code !== "23505") {
       console.error("Record settlement error:", settleError);
       setError("Something went wrong recording the settlement.");
     } else {
+      delete idempotencyKeysRef.current[`settle-${key}`];
       await loadGroupData(id);
     }
 
@@ -370,12 +390,16 @@ export default function GroupDetailScreen() {
     const key = `${line.from}-${line.to}`;
     setSettlingKey(key);
 
-    const { error: writeOffError } = await supabase.from("settlements").insert(buildWriteOffRow(id, line));
+    const { error: writeOffError } = await supabase.from("settlements").insert({
+      ...buildWriteOffRow(id, line),
+      idempotency_key: idempotencyKeyFor(`writeoff-${key}`),
+    });
 
-    if (writeOffError) {
+    if (writeOffError && writeOffError.code !== "23505") {
       console.error("Record write-off error:", writeOffError);
       setError("Something went wrong writing off the debt.");
     } else {
+      delete idempotencyKeysRef.current[`writeoff-${key}`];
       await loadGroupData(id);
     }
 

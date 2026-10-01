@@ -22,6 +22,17 @@ type Props = {
   isAdmin: boolean;
 };
 
+// randomUUID needs a secure context; fall back for plain-http dev access.
+function newIdempotencyKey(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
 export default function BalancesSection({
   groupId,
   hasExpenses,
@@ -38,17 +49,25 @@ export default function BalancesSection({
   const submittingRef = useRef(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // One idempotency key per submit intent (kind + line), kept until the
+  // balances reload so a retry of the same intent reuses it.
+  const keysRef = useRef<Record<string, string>>({});
+
   // The server action redirects back here with fresh balances, so unlock.
   useEffect(() => {
     submittingRef.current = false;
     setSubmitting(false);
+    keysRef.current = {};
   }, [detailedLines, simplifiedLines]);
 
-  function lockSubmit(event: React.FormEvent<HTMLFormElement>): boolean {
+  function lockSubmit(event: React.FormEvent<HTMLFormElement>, intent: string): boolean {
     if (submittingRef.current) {
       event.preventDefault();
       return false;
     }
+    const key = (keysRef.current[intent] ??= newIdempotencyKey());
+    const input = event.currentTarget.elements.namedItem("idempotencyKey");
+    if (input instanceof HTMLInputElement) input.value = key;
     submittingRef.current = true;
     setSubmitting(true);
     return true;
@@ -108,8 +127,12 @@ export default function BalancesSection({
                   </span>
                   {/* A settlement needs two existing users. */}
                   {!isDeletedUser(line.from) && !isDeletedUser(line.to) && (
-                  <form action={recordSettlement} onSubmit={lockSubmit}>
+                  <form
+                    action={recordSettlement}
+                    onSubmit={(event) => lockSubmit(event, `settle-${line.from}-${line.to}`)}
+                  >
                     <input type="hidden" name="groupId" value={groupId} />
+                    <input type="hidden" name="idempotencyKey" />
                     <input type="hidden" name="fromUser" value={line.from} />
                     <input type="hidden" name="toUser" value={line.to} />
                     <input
@@ -135,10 +158,11 @@ export default function BalancesSection({
                         event.preventDefault();
                         return;
                       }
-                      lockSubmit(event);
+                      lockSubmit(event, `writeoff-${line.from}-${line.to}`);
                     }}
                   >
                     <input type="hidden" name="groupId" value={groupId} />
+                    <input type="hidden" name="idempotencyKey" />
                     <input type="hidden" name="fromUser" value={line.from} />
                     <input type="hidden" name="toUser" value={line.to} />
                     <input
