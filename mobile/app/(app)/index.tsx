@@ -11,6 +11,7 @@ import { Stack, useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { supabase } from "../../lib/supabase";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../lib/theme";
+import { Logo } from "../../components/Logo";
 import { useAuth } from "../../lib/auth-context";
 import { formatBadgeCount } from "../../lib/notifications";
 import { useUnreadNotifications } from "../../lib/useUnreadNotifications";
@@ -109,6 +110,7 @@ export default function GroupsScreen() {
       <Stack.Screen
         options={{
           title: "Your groups",
+          headerTitle: () => <Logo size={24} withWordmark />,
           headerRight: () => (
             <View style={styles.headerRightRow}>
               <TouchableOpacity

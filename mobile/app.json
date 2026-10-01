@@ -15,7 +15,7 @@
       "package": "dev.tonydevcodes.spliteasy",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#18181b",
+        "backgroundColor": "#F4F5FB",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -43,10 +43,10 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#fafafa",
+          "backgroundColor": "#F4F5FB",
           "dark": {
             "image": "./assets/splash-icon.png",
-            "backgroundColor": "#09090b"
+            "backgroundColor": "#0B0C1A"
           }
         }
       ],

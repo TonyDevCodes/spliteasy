@@ -1,4 +1,6 @@
 import { useEffect, useMemo } from "react";
+import { useFonts } from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import {
   DarkTheme,
@@ -15,6 +17,10 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "../lib/auth-context";
 import { ThemeProvider, useTheme, useThemedStyles, type ThemeColors } from "../lib/theme";
 import { takePendingRedirect } from "../lib/pendingRedirect";
+import { applyDefaultFont, fontAssets } from "../lib/fonts";
+
+applyDefaultFont();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootNavigation() {
   const { session, loading } = useAuth();
@@ -82,6 +88,16 @@ function ThemedApp() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts(fontAssets);
+  const fontsReady = fontsLoaded || fontError !== null;
+
+  useEffect(() => {
+    if (fontsReady) SplashScreen.hideAsync().catch(() => {});
+  }, [fontsReady]);
+
+  // Keep the splash screen up until the fonts are loaded (or failed: fall back to the system font).
+  if (!fontsReady) return null;
+
   return (
     <SafeAreaProvider>
       <ThemeProvider>
