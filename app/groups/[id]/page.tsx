@@ -269,19 +269,18 @@ export default async function GroupDetailPage({
                     className="flex items-center justify-between gap-3 text-sm"
                   >
                     <CategoryIcon category={categoryForExpense(e)} />
-                    <span className="flex flex-1 flex-col gap-1 text-text">
-                      <span>
-                        {e.description}
+                    <span className="flex min-w-0 flex-1 flex-col gap-1 text-text">
+                      <span className="flex flex-col">
+                        <span className="font-medium">{e.description}</span>
                         <span className="text-text-muted">
-                          {" "}
-                          — paid by {nameForUserId(e.paid_by, nameById)}
+                          paid by {nameForUserId(e.paid_by, nameById)}
                         </span>
                       </span>
                       {receiptUrl && (
                         <ReceiptThumbnail url={receiptUrl} description={e.description} />
                       )}
                     </span>
-                    <span className="shrink-0 font-medium text-text">
+                    <span className="shrink-0 whitespace-nowrap font-medium text-text">
                       {formatMoney(Number(e.amount), group.currency)}
                     </span>
                   </li>

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { SUPPORTED_CURRENCIES } from "@/lib/money";
+import { CURRENCY_CHANGE_WARNING } from "@/lib/money";
+import CurrencyPicker from "@/components/CurrencyPicker";
 
 export default function CurrencySelector({
   groupId,
@@ -14,8 +15,20 @@ export default function CurrencySelector({
   editable: boolean;
 }) {
   const [value, setValue] = useState(currency);
+  const [pending, setPending] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!pending) return;
+    cancelRef.current?.focus();
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setPending(null);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [pending]);
 
   if (!editable) {
     return (
@@ -23,9 +36,11 @@ export default function CurrencySelector({
     );
   }
 
-  async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const next = e.target.value;
+  async function confirmChange() {
+    if (!pending) return;
+    const next = pending;
     const previous = value;
+    setPending(null);
     setValue(next);
     setSaving(true);
     setError(null);
@@ -45,20 +60,44 @@ export default function CurrencySelector({
 
   return (
     <div className="flex items-center gap-2">
-      <select
-        value={value}
-        onChange={handleChange}
-        disabled={saving}
-        className="rounded-md border border-border bg-input-background px-2 py-1 text-sm text-text disabled:bg-disabled disabled:text-on-disabled"
-      >
-        {SUPPORTED_CURRENCIES.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
+      <CurrencyPicker value={value} onChange={setPending} disabled={saving} className="w-28" />
       {error && (
         <span className="text-xs text-danger">{error}</span>
+      )}
+      {pending && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-overlay px-4">
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="currency-dialog-title"
+            aria-describedby="currency-dialog-text"
+            className="flex w-full max-w-sm flex-col gap-4 rounded-lg border border-border bg-surface p-6"
+          >
+            <h2 id="currency-dialog-title" className="text-base font-semibold text-text">
+              Change currency to {pending}?
+            </h2>
+            <p id="currency-dialog-text" className="text-sm text-text-muted">
+              {CURRENCY_CHANGE_WARNING}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                ref={cancelRef}
+                type="button"
+                onClick={() => setPending(null)}
+                className="rounded-md border border-border px-4 py-2 text-sm font-medium text-text hover:bg-surface-hover"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmChange}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:bg-primary-hover"
+              >
+                Change currency
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

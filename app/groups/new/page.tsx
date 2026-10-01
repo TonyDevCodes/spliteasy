@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from "@/lib/money";
+import CurrencyField from "./CurrencyField";
 
 async function createGroup(formData: FormData) {
   "use server";
@@ -75,18 +76,7 @@ export default function NewGroupPage() {
           <label htmlFor="currency" className="text-sm text-text-muted">
             Currency
           </label>
-          <select
-            id="currency"
-            name="currency"
-            defaultValue={DEFAULT_CURRENCY}
-            className="rounded-md border border-border bg-input-background px-3 py-2 text-text"
-          >
-            {SUPPORTED_CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+          <CurrencyField />
         </div>
         <div className="flex items-center gap-3">
           <button

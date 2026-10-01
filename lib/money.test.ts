@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatMoney } from "./money";
+import { CURRENCY_INFO, SUPPORTED_CURRENCIES, formatMoney } from "./money";
 
 describe("formatMoney", () => {
   it("formats EUR", () => {
@@ -27,5 +27,14 @@ describe("formatMoney", () => {
 
   it("formats zero", () => {
     expect(formatMoney(0, "EUR")).toBe("€0.00");
+  });
+});
+
+describe("CURRENCY_INFO", () => {
+  it("has a name and a two-letter flag country code for every supported currency", () => {
+    for (const c of SUPPORTED_CURRENCIES) {
+      expect(CURRENCY_INFO[c].name.length).toBeGreaterThan(0);
+      expect(CURRENCY_INFO[c].countryCode).toMatch(/^[A-Z]{2}$/);
+    }
   });
 });
