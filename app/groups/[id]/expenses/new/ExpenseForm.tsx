@@ -7,6 +7,7 @@ import { formatMoney, getCurrencySymbol } from '@/lib/money'
 import { createClient } from '@/lib/supabase/client'
 import { CATEGORIES, DEFAULT_CATEGORY_KEY, type CategoryKey } from '@/lib/categories'
 import { categoryGlyph, categoryTint } from '@/components/CategoryIcon'
+import { isDueNow, isValidDateString, type RecurringFrequency } from '@/lib/recurring'
 import {
   buildReceiptPath,
   RECEIPT_HEADER_BYTES,
@@ -15,6 +16,13 @@ import {
   validateReceiptImage,
   type ReceiptImageFormat,
 } from '@/lib/receipts'
+
+function localToday(): string {
+  const now = new Date()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear()}-${month}-${day}`
+}
 
 type Member = {
   id: string
@@ -38,6 +46,9 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
   const [paidBy, setPaidBy] = useState(currentUserId)
   const [splitMode, setSplitMode] = useState<'equally' | 'custom'>('equally')
   const [customSplits, setCustomSplits] = useState<Record<string, string>>({})
+  const [repeat, setRepeat] = useState<'none' | RecurringFrequency>('none')
+  // Empty means "today" (in the browser's time zone).
+  const [startDate, setStartDate] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   // The picked receipt and its real format (from the file's first bytes).
@@ -129,7 +140,18 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
       return
     }
 
+    const recurring = repeat !== 'none'
+    const start = startDate || localToday()
+    if (recurring && !isValidDateString(start)) {
+      setError('Choose a valid start date')
+      return
+    }
+
     const formData = new FormData()
+    if (recurring) {
+      formData.set('repeat', repeat)
+      formData.set('startDate', start)
+    }
     formData.set('description', description.trim())
     formData.set('category', category)
     formData.set('paidBy', paidBy)
@@ -138,7 +160,7 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
 
     setSubmitting(true)
     try {
-      if (receipt) {
+      if (receipt && !recurring) {
         const receiptPath = await uploadReceipt(receipt.file, receipt.extension)
         if (receiptPath) {
           formData.set('receiptPath', receiptPath)
@@ -283,6 +305,40 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
       )}
 
       <div>
+        <label htmlFor="repeat" className="block text-sm font-medium mb-1">Repeat</label>
+        <select
+          id="repeat"
+          value={repeat}
+          onChange={(e) => setRepeat(e.target.value as 'none' | RecurringFrequency)}
+          className="w-full rounded-md border border-border bg-input-background px-3 py-2 text-text"
+        >
+          <option value="none">Does not repeat</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
+
+      {repeat !== 'none' && (
+        <div>
+          <label htmlFor="start-date" className="block text-sm font-medium mb-1">Starts on</label>
+          <input
+            id="start-date"
+            type="date"
+            value={startDate || localToday()}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-full rounded-md border border-border bg-input-background px-3 py-2 text-text"
+          />
+          {isValidDateString(startDate || localToday()) &&
+            isDueNow(startDate || localToday(), localToday()) && (
+              <p className="mt-1 text-sm text-text-muted">
+                This date is today or in the past, so the first expense will be created by the next daily run.
+              </p>
+            )}
+        </div>
+      )}
+
+      {repeat === 'none' && (
+      <div>
         <span className="block text-sm font-medium mb-1">Receipt (optional)</span>
         {receiptFile && receiptPreview ? (
           <div className="flex items-center gap-3">
@@ -314,6 +370,7 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
           </label>
         )}
       </div>
+      )}
 
       <div className="flex items-center gap-3">
         <button
@@ -321,7 +378,7 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
           disabled={submitting}
           className="flex-1 rounded-md bg-primary px-4 py-2 font-medium text-on-primary hover:bg-primary-hover disabled:bg-disabled disabled:text-on-disabled"
         >
-          {submitting ? 'Adding...' : 'Add expense'}
+          {submitting ? 'Adding...' : repeat === 'none' ? 'Add expense' : 'Add recurring expense'}
         </button>
         <Link
           href={`/groups/${groupId}`}

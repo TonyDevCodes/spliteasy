@@ -95,3 +95,56 @@ export async function recordWriteOff(formData: FormData) {
 
   redirect(`/groups/${groupId}`);
 }
+
+// Pause/resume and delete are creator-only: RLS enforces it, and the created_by
+// filter makes the action a no-op for anyone else.
+export async function setRecurringActive(formData: FormData) {
+  const groupId = formData.get("groupId") as string;
+  const recurringId = formData.get("recurringId") as string;
+  const active = formData.get("active") === "true";
+
+  const supabase = await createClient();
+  const user = await getCurrentUser(supabase);
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { error } = await supabase
+    .from("recurring_expenses")
+    .update({ active })
+    .eq("id", recurringId)
+    .eq("group_id", groupId)
+    .eq("created_by", user.id);
+
+  if (error) {
+    console.error("Update recurring expense error:", error);
+  }
+
+  redirect(`/groups/${groupId}`);
+}
+
+export async function deleteRecurring(formData: FormData) {
+  const groupId = formData.get("groupId") as string;
+  const recurringId = formData.get("recurringId") as string;
+
+  const supabase = await createClient();
+  const user = await getCurrentUser(supabase);
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { error } = await supabase
+    .from("recurring_expenses")
+    .delete()
+    .eq("id", recurringId)
+    .eq("group_id", groupId)
+    .eq("created_by", user.id);
+
+  if (error) {
+    console.error("Delete recurring expense error:", error);
+  }
+
+  redirect(`/groups/${groupId}`);
+}

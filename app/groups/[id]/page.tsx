@@ -15,6 +15,7 @@ import BalancesSection from "./BalancesSection";
 import CurrencySelector from "./CurrencySelector";
 import ActivityFeed from "./ActivityFeed";
 import CategoryStats from "./CategoryStats";
+import RecurringList, { type RecurringRow } from "./RecurringList";
 import ExportMenu from "./ExportMenu";
 import { ACTIVITY_COLUMNS, toActivityItems, type ActivityRow } from "@/lib/activity";
 import ReceiptThumbnail from "./ReceiptThumbnail";
@@ -92,6 +93,12 @@ export default async function GroupDetailPage({
     .order("created_at", { ascending: false })
     .limit(ACTIVITY_LIMIT);
 
+  const { data: recurring, error: recurringError } = await supabase
+    .from("recurring_expenses")
+    .select("id, paid_by, description, amount, frequency, next_due, active, created_by")
+    .eq("group_id", id)
+    .order("next_due", { ascending: true });
+
   const { data: members, error: membersError } = await supabase
     .from("group_members")
     .select("user_id, role, profiles(id, display_name, email)")
@@ -103,7 +110,7 @@ export default async function GroupDetailPage({
   const isAdmin = myRole === "admin" || myRole === "owner";
 
   const hasLoadError = Boolean(
-    invitesError || expensesError || splitsError || settlementsError || membersError || activityError
+    invitesError || expensesError || splitsError || settlementsError || membersError || activityError || recurringError
   );
 
   if (hasLoadError) {
@@ -114,6 +121,7 @@ export default async function GroupDetailPage({
       settlementsError,
       membersError,
       activityError,
+      recurringError,
     });
   }
 
@@ -310,6 +318,14 @@ export default async function GroupDetailPage({
         </div>
 
         <CategoryStats expenses={expenses ?? []} currency={group.currency} />
+
+        <RecurringList
+          groupId={group.id}
+          templates={(recurring ?? []) as RecurringRow[]}
+          nameById={nameById}
+          currency={group.currency}
+          currentUserId={user.id}
+        />
 
         <ActivityFeed
           items={toActivityItems((activityRows ?? []) as unknown as ActivityRow[])}

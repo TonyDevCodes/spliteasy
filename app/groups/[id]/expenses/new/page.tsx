@@ -4,6 +4,7 @@ import { redirect, notFound } from 'next/navigation'
 import { getDisplayName } from '@/lib/displayName'
 import { isReceiptPathForGroup } from '@/lib/receipts'
 import { isValidCategory } from '@/lib/categories'
+import { buildRecurringRow } from '@/lib/recurring'
 import ExpenseForm from './ExpenseForm'
 
 export default async function NewExpensePage({
@@ -65,6 +66,37 @@ export default async function NewExpensePage({
     const totalSplit = splits.reduce((sum, s) => sum + s.amountCents, 0)
     if (totalSplit !== amountCents) {
       throw new Error('Split totals do not match expense amount')
+    }
+
+    // "weekly" or "monthly" saves a recurring template instead of an expense;
+    // anything else (including no value) is a normal one-off expense.
+    const repeat = formData.get('repeat')
+    if (repeat === 'weekly' || repeat === 'monthly') {
+      const built = buildRecurringRow({
+        groupId,
+        createdBy: user.id,
+        paidBy,
+        description,
+        category,
+        amountCents,
+        splits,
+        frequency: repeat,
+        startDate: (formData.get('startDate') as string | null) ?? '',
+        memberIds: formattedMembers.map((m) => m.id),
+      })
+      if (!built.ok) {
+        throw new Error(built.error)
+      }
+
+      const { error: recurringError } = await supabase
+        .from('recurring_expenses')
+        .insert(built.row)
+
+      if (recurringError) {
+        throw new Error(recurringError.message)
+      }
+
+      redirect(`/groups/${groupId}`)
     }
 
     // Uploaded by the form; only a path inside this group's folder is stored.
