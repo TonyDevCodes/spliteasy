@@ -33,6 +33,7 @@ import { useTheme, useThemedStyles, type ThemeColors } from "../../../../lib/the
 import { useAuth } from "../../../../lib/auth-context";
 import { ActivityFeed } from "../../../../components/ActivityFeed";
 import { CategoryIcon } from "../../../../components/CategoryIcon";
+import { CategoryStats } from "../../../../components/CategoryStats";
 import { ACTIVITY_COLUMNS, toActivityItems, type ActivityItem, type ActivityRow } from "../../../../lib/activity";
 import { categoryForExpense } from "../../../../lib/categories";
 import { inviteUrl } from "../../../../lib/invites";
@@ -802,7 +803,10 @@ export default function GroupDetailScreen() {
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.listContent}
               ListFooterComponent={
-                <ActivityFeed items={activity} nameById={nameById} currency={currency} />
+                <>
+                  <CategoryStats expenses={expenses} currency={currency} />
+                  <ActivityFeed items={activity} nameById={nameById} currency={currency} />
+                </>
               }
               ListEmptyComponent={
                 <EmptyState

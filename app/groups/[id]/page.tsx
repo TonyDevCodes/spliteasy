@@ -14,6 +14,7 @@ import RealtimeGroupListener from "./RealtimeGroupListener";
 import BalancesSection from "./BalancesSection";
 import CurrencySelector from "./CurrencySelector";
 import ActivityFeed from "./ActivityFeed";
+import CategoryStats from "./CategoryStats";
 import ExportMenu from "./ExportMenu";
 import { ACTIVITY_COLUMNS, toActivityItems, type ActivityRow } from "@/lib/activity";
 import ReceiptThumbnail from "./ReceiptThumbnail";
@@ -307,6 +308,8 @@ export default async function GroupDetailPage({
             + Add expense
           </Link>
         </div>
+
+        <CategoryStats expenses={expenses ?? []} currency={group.currency} />
 
         <ActivityFeed
           items={toActivityItems((activityRows ?? []) as unknown as ActivityRow[])}
