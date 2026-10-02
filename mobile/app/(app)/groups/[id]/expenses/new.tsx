@@ -19,6 +19,19 @@ import {
   RECEIPTS_BUCKET,
   validateReceiptImage,
 } from "../../../../../lib/receipts";
+import {
+  buildRecurringRow,
+  isDueNow,
+  isValidDateString,
+  type RecurringFrequency,
+} from "../../../../../lib/recurring";
+
+function localToday(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
 
 type ProfileRow = {
   id: string;
@@ -57,6 +70,9 @@ export default function NewExpenseScreen() {
   const [paidBy, setPaidBy] = useState<string | null>(null);
   const [splitMode, setSplitMode] = useState<SplitMode>("equally");
   const [customSplits, setCustomSplits] = useState<Record<string, string>>({});
+  const [repeat, setRepeat] = useState<"none" | RecurringFrequency>("none");
+  // Empty means "today" (in the device's time zone).
+  const [startDate, setStartDate] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -135,6 +151,7 @@ export default function NewExpenseScreen() {
   const splitTotal = splits.reduce((sum, s) => sum + s.amountCents, 0);
   const splitMismatch = splitMode === "custom" && splitTotal !== amountCents;
   const currencySymbol = getCurrencySymbol(currency);
+  const effectiveStart = startDate.trim() || localToday();
 
   async function handleTakePhoto() {
     setPhotoError(null);
@@ -239,6 +256,44 @@ export default function NewExpenseScreen() {
       setError(
         `Split total (${formatMoney(splitTotal / 100, currency)}) does not match the expense amount (${formatMoney(amountCents / 100, currency)})`
       );
+      return;
+    }
+
+    // Weekly or monthly saves a template for the daily run instead of an
+    // expense; the receipt picker is hidden for it.
+    if (repeat !== "none") {
+      if (!authUserId) {
+        setError("You need to be signed in");
+        return;
+      }
+      const built = buildRecurringRow({
+        groupId,
+        createdBy: authUserId,
+        paidBy,
+        description,
+        category,
+        amountCents,
+        splits,
+        frequency: repeat,
+        startDate: effectiveStart,
+        memberIds: members.map((m) => m.id),
+      });
+      if (!built.ok) {
+        setError(built.error);
+        return;
+      }
+
+      setSubmitting(true);
+      const { error: recurringError } = await supabase.from("recurring_expenses").insert(built.row);
+      if (recurringError) {
+        console.error("Create recurring expense error:", recurringError);
+        setError(recurringError.message || "Failed to create recurring expense");
+        setSubmitting(false);
+        return;
+      }
+
+      setSubmitting(false);
+      router.back();
       return;
     }
 
@@ -429,6 +484,53 @@ export default function NewExpenseScreen() {
         </View>
       )}
 
+      <Text style={styles.label}>Repeat</Text>
+      <View style={styles.chipRow} accessibilityRole="radiogroup">
+        {(
+          [
+            { value: "none", label: "Does not repeat" },
+            { value: "weekly", label: "Weekly" },
+            { value: "monthly", label: "Monthly" },
+          ] as const
+        ).map((option) => (
+          <TouchableOpacity
+            key={option.value}
+            style={[styles.chip, repeat === option.value && styles.chipActive]}
+            onPress={() => setRepeat(option.value)}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: repeat === option.value }}
+          >
+            <Text style={[styles.chipText, repeat === option.value && styles.chipTextActive]}>
+              {option.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {repeat !== "none" && (
+        <>
+          <Text style={styles.label}>Starts on</Text>
+          <TextInput
+            placeholderTextColor={colors.placeholder}
+            style={styles.input}
+            value={startDate || localToday()}
+            onChangeText={setStartDate}
+            placeholder="YYYY-MM-DD"
+            keyboardType="numbers-and-punctuation"
+            autoCapitalize="none"
+            autoCorrect={false}
+            maxLength={10}
+          />
+          {isValidDateString(effectiveStart) && isDueNow(effectiveStart, localToday()) && (
+            <Text style={[styles.mutedText, styles.noteSpacing]}>
+              This date is today or in the past, so the first expense will be created by the next daily run.
+            </Text>
+          )}
+        </>
+      )}
+
+      {repeat === "none" && (
+        <>
       <Text style={styles.label}>Receipt photo</Text>
       {photoError && <Text style={styles.error}>{photoError}</Text>}
 
@@ -454,12 +556,16 @@ export default function NewExpenseScreen() {
           </TouchableOpacity>
         </View>
       )}
+        </>
+      )}
 
       <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={submitting}>
         {submitting ? (
           <ActivityIndicator color={colors.onPrimary} />
         ) : (
-          <Text style={styles.buttonText}>Add expense</Text>
+          <Text style={styles.buttonText}>
+            {repeat === "none" ? "Add expense" : "Add recurring expense"}
+          </Text>
         )}
       </TouchableOpacity>
     </ScrollView>
@@ -557,6 +663,10 @@ const makeStyles = (c: ThemeColors) =>
     mutedText: {
       fontSize: 13,
       color: c.textMuted,
+    },
+    noteSpacing: {
+      marginTop: -8,
+      marginBottom: 16,
     },
     photoPreviewRow: {
       marginBottom: 16,

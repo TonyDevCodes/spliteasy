@@ -34,6 +34,7 @@ import { useAuth } from "../../../../lib/auth-context";
 import { ActivityFeed } from "../../../../components/ActivityFeed";
 import { CategoryIcon } from "../../../../components/CategoryIcon";
 import { CategoryStats } from "../../../../components/CategoryStats";
+import { RecurringList, type RecurringRow } from "../../../../components/RecurringList";
 import { ACTIVITY_COLUMNS, toActivityItems, type ActivityItem, type ActivityRow } from "../../../../lib/activity";
 import { categoryForExpense } from "../../../../lib/categories";
 import { inviteUrl } from "../../../../lib/invites";
@@ -144,6 +145,7 @@ export default function GroupDetailScreen() {
   const [splits, setSplits] = useState<Split[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [recurring, setRecurring] = useState<RecurringRow[]>([]);
   const [invite, setInvite] = useState<Invite | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
@@ -212,6 +214,7 @@ export default function GroupDetailScreen() {
       { data: settlementRows, error: settlementsError },
       { data: inviteRows, error: invitesError },
       { data: activityRows, error: activityError },
+      { data: recurringRows, error: recurringError },
     ] = await Promise.all([
       supabase
         .from("group_members")
@@ -248,10 +251,22 @@ export default function GroupDetailScreen() {
         .order("created_at", { ascending: false })
         .limit(ACTIVITY_LIMIT)
         .returns<ActivityRow[]>(),
+      supabase
+        .from("recurring_expenses")
+        .select("id, paid_by, description, amount, frequency, next_due, active, created_by")
+        .eq("group_id", groupId)
+        .order("next_due", { ascending: true })
+        .returns<RecurringRow[]>(),
     ]);
 
     const hasLoadError = Boolean(
-      membersError || expensesError || splitsError || settlementsError || invitesError || activityError
+      membersError ||
+        expensesError ||
+        splitsError ||
+        settlementsError ||
+        invitesError ||
+        activityError ||
+        recurringError
     );
 
     if (hasLoadError) {
@@ -262,6 +277,7 @@ export default function GroupDetailScreen() {
         settlementsError,
         invitesError,
         activityError,
+        recurringError,
       });
     }
 
@@ -281,6 +297,7 @@ export default function GroupDetailScreen() {
     setSettlements(settlementRows ?? []);
     setInvite(inviteRows?.[0] ?? null);
     setActivity(toActivityItems(activityRows ?? []));
+    setRecurring(recurringRows ?? []);
     setLoading(false);
 
     // Re-signed on every load, so the 60-minute URLs stay fresh.
@@ -805,6 +822,14 @@ export default function GroupDetailScreen() {
               ListFooterComponent={
                 <>
                   <CategoryStats expenses={expenses} currency={currency} />
+                  <RecurringList
+                    groupId={group?.id ?? id}
+                    templates={recurring}
+                    nameById={nameById}
+                    currency={currency}
+                    currentUserId={currentUserId}
+                    onChanged={() => loadGroupData(id)}
+                  />
                   <ActivityFeed items={activity} nameById={nameById} currency={currency} />
                 </>
               }
