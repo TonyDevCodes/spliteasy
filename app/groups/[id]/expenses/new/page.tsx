@@ -105,35 +105,28 @@ export default async function NewExpensePage({
       throw new Error('Invalid receipt')
     }
 
-    const { data: expense, error: expenseError } = await supabase
-      .from('expenses')
-      .insert({
-        group_id: groupId,
-        paid_by: paidBy,
-        description,
-        category,
-        amount: amountCents / 100,
-        ...(receiptPath ? { receipt_url: receiptPath } : {}),
-      })
-      .select('id')
-      .single()
-
-    if (expenseError || !expense) {
-      throw new Error(expenseError?.message || 'Failed to create expense')
+    // Created once per form instance, so a retry after a failed save is idempotent.
+    const idempotencyKey = (formData.get('idempotencyKey') as string | null) || null
+    if (!idempotencyKey) {
+      throw new Error('Missing idempotency key')
     }
 
-    const splitRows = splits.map((s) => ({
-      expense_id: expense.id,
-      user_id: s.userId,
-      amount_owed: s.amountCents / 100,
-    }))
+    const { error: expenseError } = await supabase.rpc('create_expense_with_splits', {
+      p_group_id: groupId,
+      p_paid_by: paidBy,
+      p_amount: amountCents / 100,
+      p_description: description,
+      p_category: category,
+      p_receipt_url: receiptPath ?? null,
+      p_idempotency_key: idempotencyKey,
+      p_splits: splits.map((s) => ({
+        user_id: s.userId,
+        amount_owed: s.amountCents / 100,
+      })),
+    })
 
-    const { error: splitsError } = await supabase
-      .from('expense_splits')
-      .insert(splitRows)
-
-    if (splitsError) {
-      throw new Error(splitsError.message)
+    if (expenseError) {
+      throw new Error(expenseError.message || 'Failed to create expense')
     }
 
     // The form saves the expense even when the receipt upload failed; the

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text, TextInput } from "../../../../../components/AppText";
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -25,6 +25,17 @@ import {
   isValidDateString,
   type RecurringFrequency,
 } from "../../../../../lib/recurring";
+
+// Hermes may lack crypto.randomUUID; the key only needs to be unique, not secret.
+function newIdempotencyKey(): string {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
 
 function localToday(): string {
   const now = new Date();
@@ -75,6 +86,8 @@ export default function NewExpenseScreen() {
   const [startDate, setStartDate] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // One key per screen instance: a retry after a failed save reuses it.
+  const idempotencyKeyRef = useRef(newIdempotencyKey());
 
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -313,37 +326,23 @@ export default function NewExpenseScreen() {
       }
     }
 
-    const { data: expense, error: expenseError } = await supabase
-      .from("expenses")
-      .insert({
-        group_id: groupId,
-        paid_by: paidBy,
-        description: description.trim(),
-        category,
-        amount: amountCents / 100,
-        ...(receiptPath ? { receipt_url: receiptPath } : {}),
-      })
-      .select("id")
-      .single();
+    const { error: expenseError } = await supabase.rpc("create_expense_with_splits", {
+      p_group_id: groupId,
+      p_paid_by: paidBy,
+      p_amount: amountCents / 100,
+      p_description: description.trim(),
+      p_category: category,
+      p_receipt_url: receiptPath ?? null,
+      p_idempotency_key: idempotencyKeyRef.current,
+      p_splits: splits.map((s) => ({
+        user_id: s.userId,
+        amount_owed: s.amountCents / 100,
+      })),
+    });
 
-    if (expenseError || !expense) {
+    if (expenseError) {
       console.error("Create expense error:", expenseError);
-      setError(expenseError?.message || "Failed to create expense");
-      setSubmitting(false);
-      return;
-    }
-
-    const splitRows = splits.map((s) => ({
-      expense_id: expense.id,
-      user_id: s.userId,
-      amount_owed: s.amountCents / 100,
-    }));
-
-    const { error: splitsError } = await supabase.from("expense_splits").insert(splitRows);
-
-    if (splitsError) {
-      console.error("Create expense splits error:", splitsError);
-      setError(splitsError.message);
+      setError(expenseError.message || "Failed to create expense");
       setSubmitting(false);
       return;
     }

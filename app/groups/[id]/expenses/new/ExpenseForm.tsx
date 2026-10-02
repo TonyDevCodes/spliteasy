@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatMoney, getCurrencySymbol } from '@/lib/money'
@@ -51,6 +51,8 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
   const [startDate, setStartDate] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  // One key per form instance: a retry after a failed save reuses it.
+  const idempotencyKey = useRef(crypto.randomUUID())
   // The picked receipt and its real format (from the file's first bytes).
   const [receipt, setReceipt] = useState<{ file: File; extension: ReceiptImageFormat } | null>(null)
   const receiptFile = receipt?.file ?? null
@@ -157,6 +159,7 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
     formData.set('paidBy', paidBy)
     formData.set('amountCents', String(amountCents))
     formData.set('splits', JSON.stringify(splits))
+    formData.set('idempotencyKey', idempotencyKey.current)
 
     setSubmitting(true)
     try {
