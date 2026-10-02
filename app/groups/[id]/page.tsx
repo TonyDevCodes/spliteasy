@@ -13,7 +13,9 @@ import {
 import RealtimeGroupListener from "./RealtimeGroupListener";
 import BalancesSection from "./BalancesSection";
 import CurrencySelector from "./CurrencySelector";
+import ActivityFeed from "./ActivityFeed";
 import ExportMenu from "./ExportMenu";
+import { ACTIVITY_COLUMNS, toActivityItems, type ActivityRow } from "@/lib/activity";
 import ReceiptThumbnail from "./ReceiptThumbnail";
 import { createInvite } from "./actions";
 import { EmptyState } from "@/components/EmptyState";
@@ -22,7 +24,9 @@ import { categoryForExpense } from "@/lib/categories";
 import { SignOutButton } from "@/app/sign-out-button";
 import { NotificationBell } from "@/app/notification-bell";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const ACTIVITY_LIMIT = 50;
+
+const SITE_URL =process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export default async function GroupDetailPage({
   params,
@@ -80,6 +84,13 @@ export default async function GroupDetailPage({
     .select("from_user, to_user, amount, settled_at, kind")
     .eq("group_id", id);
 
+  const { data: activityRows, error: activityError } = await supabase
+    .from("group_activity")
+    .select(ACTIVITY_COLUMNS)
+    .eq("group_id", id)
+    .order("created_at", { ascending: false })
+    .limit(ACTIVITY_LIMIT);
+
   const { data: members, error: membersError } = await supabase
     .from("group_members")
     .select("user_id, role, profiles(id, display_name, email)")
@@ -91,7 +102,7 @@ export default async function GroupDetailPage({
   const isAdmin = myRole === "admin" || myRole === "owner";
 
   const hasLoadError = Boolean(
-    invitesError || expensesError || splitsError || settlementsError || membersError
+    invitesError || expensesError || splitsError || settlementsError || membersError || activityError
   );
 
   if (hasLoadError) {
@@ -101,6 +112,7 @@ export default async function GroupDetailPage({
       splitsError,
       settlementsError,
       membersError,
+      activityError,
     });
   }
 
@@ -295,6 +307,12 @@ export default async function GroupDetailPage({
             + Add expense
           </Link>
         </div>
+
+        <ActivityFeed
+          items={toActivityItems((activityRows ?? []) as unknown as ActivityRow[])}
+          nameById={nameById}
+          currency={group.currency}
+        />
 
         <div className="flex flex-col gap-2 border-t border-border pt-4">
           {inviteUrl === null ? (
