@@ -31,7 +31,9 @@ import { CURRENCY_CHANGE_WARNING, DEFAULT_CURRENCY, formatMoney } from "../../..
 import { CurrencyPicker } from "../../../../components/CurrencyPicker";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../../../lib/theme";
 import { useAuth } from "../../../../lib/auth-context";
+import { ActivityFeed } from "../../../../components/ActivityFeed";
 import { CategoryIcon } from "../../../../components/CategoryIcon";
+import { ACTIVITY_COLUMNS, toActivityItems, type ActivityItem, type ActivityRow } from "../../../../lib/activity";
 import { categoryForExpense } from "../../../../lib/categories";
 import { inviteUrl } from "../../../../lib/invites";
 import {
@@ -41,6 +43,8 @@ import {
   RECEIPTS_BUCKET,
   signedUrlsByPath,
 } from "../../../../lib/receipts";
+
+const ACTIVITY_LIMIT = 50;
 
 const WATCHED_TABLES = ["expenses", "settlements", "expense_splits", "group_members", "groups"];
 
@@ -138,6 +142,7 @@ export default function GroupDetailScreen() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [splits, setSplits] = useState<Split[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [invite, setInvite] = useState<Invite | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
@@ -205,6 +210,7 @@ export default function GroupDetailScreen() {
       { data: splitRows, error: splitsError },
       { data: settlementRows, error: settlementsError },
       { data: inviteRows, error: invitesError },
+      { data: activityRows, error: activityError },
     ] = await Promise.all([
       supabase
         .from("group_members")
@@ -234,10 +240,17 @@ export default function GroupDetailScreen() {
         .order("created_at", { ascending: false })
         .limit(1)
         .returns<Invite[]>(),
+      supabase
+        .from("group_activity")
+        .select(ACTIVITY_COLUMNS)
+        .eq("group_id", groupId)
+        .order("created_at", { ascending: false })
+        .limit(ACTIVITY_LIMIT)
+        .returns<ActivityRow[]>(),
     ]);
 
     const hasLoadError = Boolean(
-      membersError || expensesError || splitsError || settlementsError || invitesError
+      membersError || expensesError || splitsError || settlementsError || invitesError || activityError
     );
 
     if (hasLoadError) {
@@ -247,6 +260,7 @@ export default function GroupDetailScreen() {
         splitsError,
         settlementsError,
         invitesError,
+        activityError,
       });
     }
 
@@ -265,6 +279,7 @@ export default function GroupDetailScreen() {
     setSplits(splitRows ?? []);
     setSettlements(settlementRows ?? []);
     setInvite(inviteRows?.[0] ?? null);
+    setActivity(toActivityItems(activityRows ?? []));
     setLoading(false);
 
     // Re-signed on every load, so the 60-minute URLs stay fresh.
@@ -786,6 +801,9 @@ export default function GroupDetailScreen() {
               data={expenses}
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.listContent}
+              ListFooterComponent={
+                <ActivityFeed items={activity} nameById={nameById} currency={currency} />
+              }
               ListEmptyComponent={
                 <EmptyState
                   title="No expenses yet"

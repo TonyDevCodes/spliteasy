@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { groupActivityByDay, toActivityItem, toActivityItems, type ActivityRow } from "./activity";
 
@@ -122,4 +124,9 @@ describe("groupActivityByDay", () => {
   it("drops items with an invalid timestamp", () => {
     expect(groupActivityByDay([item({ created_at: "nope" })], "UTC")).toEqual([]);
   });
+});
+
+it("is identical in the mobile app", () => {
+  const read = (...parts: string[]) => readFileSync(join(__dirname, ...parts), "utf8").replace(/\r\n/g, "\n");
+  expect(read("..", "mobile", "lib", "activity.ts")).toBe(read("activity.ts"));
 });
