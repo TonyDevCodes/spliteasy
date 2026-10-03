@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { computeCategoryTotals, computeGrandTotal } from "./categoryTotals";
+import { computeCategoryTotals, computeGrandTotal, formatPercent } from "./categoryTotals";
 
 function exp(amount: number | string, description: string, category: string | null = null) {
   return { amount, description, category };
@@ -72,6 +72,15 @@ describe("computeCategoryTotals", () => {
 
   it("gives 0 percent when the grand total is zero", () => {
     expect(computeCategoryTotals([exp(0, "a", "food")])[0].percent).toBe(0);
+  });
+});
+
+describe("formatPercent", () => {
+  it("always shows one decimal", () => {
+    expect(formatPercent(9)).toBe("9.0%");
+    expect(formatPercent(62.8)).toBe("62.8%");
+    expect(formatPercent(0)).toBe("0.0%");
+    expect(formatPercent(100)).toBe("100.0%");
   });
 });
 

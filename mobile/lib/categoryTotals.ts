@@ -25,6 +25,11 @@ function toCents(amount: number | string): number {
   return Number.isFinite(value) ? Math.round(value * 100) : 0;
 }
 
+/** Display text for a percentage, always with one decimal (9 -> "9.0%"). */
+export function formatPercent(value: number): string {
+  return `${value.toFixed(1)}%`;
+}
+
 /** Sum of all expense amounts, rounded to cents. */
 export function computeGrandTotal(expenses: ExpenseInput[]): number {
   return expenses.reduce((sum, e) => sum + toCents(e.amount), 0) / 100;

@@ -3,7 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { Text } from "./AppText";
 import { CategoryIcon } from "./CategoryIcon";
 import { getCategory } from "../lib/categories";
-import { computeCategoryTotals, computeGrandTotal } from "../lib/categoryTotals";
+import { computeCategoryTotals, computeGrandTotal, formatPercent } from "../lib/categoryTotals";
 import { formatMoney } from "../lib/money";
 import { useThemedStyles, type ThemeColors } from "../lib/theme";
 
@@ -19,7 +19,7 @@ export function CategoryStats({ expenses, currency }: Props) {
 
   if (expenses.length === 0) return null;
 
-  const barLabel = totals.map((t) => `${t.label} ${t.percent}%`).join(", ");
+  const barLabel = totals.map((t) => `${t.label} ${formatPercent(t.percent)}`).join(", ");
 
   return (
     <View style={styles.section}>
@@ -48,7 +48,7 @@ export function CategoryStats({ expenses, currency }: Props) {
           </View>
           <View style={styles.rowRight}>
             <Text style={styles.amount}>{formatMoney(t.total, currency)}</Text>
-            <Text style={styles.mutedText}>{t.percent}%</Text>
+            <Text style={styles.mutedText}>{formatPercent(t.percent)}</Text>
           </View>
         </View>
       ))}

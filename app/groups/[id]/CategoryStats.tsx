@@ -1,6 +1,6 @@
 import CategoryIcon from "@/components/CategoryIcon";
 import { getCategory } from "@/lib/categories";
-import { computeCategoryTotals, computeGrandTotal } from "@/lib/categoryTotals";
+import { computeCategoryTotals, computeGrandTotal, formatPercent } from "@/lib/categoryTotals";
 import { formatMoney } from "@/lib/money";
 
 type Props = {
@@ -13,7 +13,7 @@ export default function CategoryStats({ expenses, currency }: Props) {
 
   const totals = computeCategoryTotals(expenses);
   const grandTotal = computeGrandTotal(expenses);
-  const barLabel = totals.map((t) => `${t.label} ${t.percent}%`).join(", ");
+  const barLabel = totals.map((t) => `${t.label} ${formatPercent(t.percent)}`).join(", ");
 
   return (
     <div className="flex flex-col gap-3 border-t border-border pt-4">
@@ -44,7 +44,7 @@ export default function CategoryStats({ expenses, currency }: Props) {
             </span>
             <span className="flex shrink-0 flex-col items-end text-text">
               <span className="whitespace-nowrap font-medium">{formatMoney(t.total, currency)}</span>
-              <span className="text-text-muted">{t.percent}%</span>
+              <span className="text-text-muted">{formatPercent(t.percent)}</span>
             </span>
           </li>
         ))}
