@@ -85,7 +85,7 @@ export default function InviteScreen() {
   }, [token, userId]);
 
   useEffect(() => {
-    if (!authLoading) load();
+    if (!authLoading) void Promise.resolve().then(load);
   }, [authLoading, load]);
 
   // withAnchor keeps the groups list underneath, so back works.

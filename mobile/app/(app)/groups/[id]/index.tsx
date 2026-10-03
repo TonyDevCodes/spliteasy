@@ -629,6 +629,7 @@ export default function GroupDetailScreen() {
           {viewingReceiptUrl && !brokenReceiptUrls[viewingReceiptUrl] && (
             <Image
               source={{ uri: viewingReceiptUrl }}
+              alt=""
               style={styles.receiptFull}
               resizeMode="contain"
               onError={() => markReceiptBroken(viewingReceiptUrl)}
@@ -866,6 +867,7 @@ export default function GroupDetailScreen() {
                         >
                           <Image
                             source={{ uri: receiptUrl }}
+                            alt=""
                             style={styles.receiptThumb}
                             onError={() => markReceiptBroken(receiptUrl)}
                           />

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Text } from "./AppText";
 import { CURRENCY_INFO, SUPPORTED_CURRENCIES, currencyFlagEmoji } from "../lib/money";

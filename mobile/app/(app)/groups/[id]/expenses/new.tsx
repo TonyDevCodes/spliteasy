@@ -535,7 +535,7 @@ export default function NewExpenseScreen() {
 
       {photoUri ? (
         <View style={styles.photoPreviewRow}>
-          <Image source={{ uri: photoUri }} style={styles.photoThumbnail} />
+          <Image source={{ uri: photoUri }} alt="" style={styles.photoThumbnail} />
           <View style={styles.chipRow}>
             <TouchableOpacity style={styles.chip} onPress={handleTakePhoto}>
               <Text style={styles.chipText}>Retake</Text>

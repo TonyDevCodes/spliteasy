@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, StyleSheet, TouchableOpacity } from "react-native";
 import { Text, TextInput } from "../../components/AppText";
 import { Link } from "expo-router";
 import { AuthScreen } from "../../components/AuthScreen";

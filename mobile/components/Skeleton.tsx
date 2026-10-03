@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Animated, StyleSheet, View, type DimensionValue, type StyleProp, type ViewStyle } from "react-native";
 import { useTheme } from "../lib/theme";
 
@@ -12,7 +12,7 @@ type SkeletonProps = {
 // Placeholder block shown while data loads; pulses between half and full opacity.
 export function Skeleton({ width = "100%", height = 16, radius = 8, style }: SkeletonProps) {
   const { colors } = useTheme();
-  const opacity = useRef(new Animated.Value(0.5)).current;
+  const [opacity] = useState(() => new Animated.Value(0.5));
 
   useEffect(() => {
     const loop = Animated.loop(

@@ -37,7 +37,9 @@ function resolveStyle(style: unknown, nested: boolean) {
   const base = n >= 800 ? FACES["800"] : n >= 700 ? FACES["700"] : n >= 600 ? FACES["600"] : n >= 500 ? FACES["500"] : FACES["400"];
   const fontFamily = flat.fontStyle === "italic" ? `${base}_Italic` : base;
 
-  const { fontWeight: _w, fontStyle: _s, ...rest } = flat;
+  const rest = { ...flat };
+  delete rest.fontWeight;
+  delete rest.fontStyle;
   return { ...rest, fontFamily };
 }
 
