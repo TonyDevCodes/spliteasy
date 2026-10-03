@@ -42,3 +42,7 @@ next-env.d.ts
 
 # local-only scripts (contain test account emails)
 scripts/local/
+
+# playwright
+/playwright-report/
+/test-results/
