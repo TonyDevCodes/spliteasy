@@ -14,7 +14,7 @@ async function createGroup(formData: FormData) {
   }
 
   const rawCurrency = formData.get("currency") as string | null;
-  const currency = SUPPORTED_CURRENCIES.includes(rawCurrency as any)
+  const currency = SUPPORTED_CURRENCIES.some((c) => c === rawCurrency)
     ? rawCurrency
     : DEFAULT_CURRENCY;
 

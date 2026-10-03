@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import {
   THEME_PREFERENCES,
   THEME_STORAGE_KEY,
@@ -23,20 +23,41 @@ function readStoredPreference(): ThemePreference {
   }
 }
 
-export default function ThemeSetting() {
-  const [preference, setPreference] = useState<ThemePreference>("system");
+// Holds the choice for this page view when storage is unavailable.
+let unsavedPreference: ThemePreference | null = null;
+const listeners = new Set<() => void>();
 
-  useEffect(() => {
-    setPreference(readStoredPreference());
-  }, []);
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function getSnapshot(): ThemePreference {
+  return unsavedPreference ?? readStoredPreference();
+}
+
+function storePreference(next: ThemePreference) {
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, next);
+    unsavedPreference = null;
+  } catch {
+    // Storage unavailable (e.g. private mode): still apply for this page view.
+    unsavedPreference = next;
+  }
+  listeners.forEach((listener) => listener());
+}
+
+function getServerSnapshot(): ThemePreference {
+  return "system";
+}
+
+export default function ThemeSetting() {
+  const preference = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   function handleSelect(next: ThemePreference) {
-    setPreference(next);
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, next);
-    } catch {
-      // Storage unavailable (e.g. private mode): still apply for this page view.
-    }
+    storePreference(next);
     const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     document.documentElement.setAttribute("data-theme", resolveTheme(next, systemPrefersDark));
   }

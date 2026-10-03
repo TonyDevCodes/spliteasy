@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { formatMoney, getCurrencySymbol } from '@/lib/money'
 import { createClient } from '@/lib/supabase/client'
 import { CATEGORIES, DEFAULT_CATEGORY_KEY, type CategoryKey } from '@/lib/categories'
@@ -39,7 +38,6 @@ type Props = {
 
 export default function ExpenseForm({ groupId, members, currentUserId, currency, addExpenseAction }: Props) {
   const currencySymbol = getCurrencySymbol(currency)
-  const router = useRouter()
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState<CategoryKey>(DEFAULT_CATEGORY_KEY)
   const [amount, setAmount] = useState('')
@@ -172,8 +170,8 @@ export default function ExpenseForm({ groupId, members, currentUserId, currency,
         }
       }
       await addExpenseAction(formData)
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong')
+    } catch (err) {
+      setError((err instanceof Error && err.message) || 'Something went wrong')
       setSubmitting(false)
     }
   }

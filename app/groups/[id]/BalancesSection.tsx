@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   canWriteOff,
   WRITE_OFF_CONFIRM_TEXT,
@@ -33,6 +33,13 @@ function newIdempotencyKey(): string {
   });
 }
 
+type SubmitState = {
+  detailed: BalanceLine[];
+  simplified: BalanceLine[];
+  locked: boolean;
+  keys: Record<string, string>;
+};
+
 export default function BalancesSection({
   groupId,
   hasExpenses,
@@ -46,30 +53,45 @@ export default function BalancesSection({
   const lines = view === "detailed" ? detailedLines : simplifiedLines;
 
   // The ref blocks a second submit synchronously; state only drives `disabled`.
-  const submittingRef = useRef(false);
-  const [submitting, setSubmitting] = useState(false);
+  // Both are tied to the balance lines they were taken against: once the server
+  // action redirects back with fresh balances the lock and keys are stale, so unlock.
+  // One idempotency key per submit intent (kind + line) is kept until then so a
+  // retry of the same intent reuses it.
+  const submitRef = useRef<SubmitState | null>(null);
+  const [lockedFor, setLockedFor] = useState<Pick<SubmitState, "detailed" | "simplified"> | null>(
+    null
+  );
+  const submitting =
+    lockedFor !== null &&
+    lockedFor.detailed === detailedLines &&
+    lockedFor.simplified === simplifiedLines;
 
-  // One idempotency key per submit intent (kind + line), kept until the
-  // balances reload so a retry of the same intent reuses it.
-  const keysRef = useRef<Record<string, string>>({});
-
-  // The server action redirects back here with fresh balances, so unlock.
-  useEffect(() => {
-    submittingRef.current = false;
-    setSubmitting(false);
-    keysRef.current = {};
-  }, [detailedLines, simplifiedLines]);
+  function currentSubmitState(): SubmitState {
+    const existing = submitRef.current;
+    if (existing && existing.detailed === detailedLines && existing.simplified === simplifiedLines) {
+      return existing;
+    }
+    const fresh: SubmitState = {
+      detailed: detailedLines,
+      simplified: simplifiedLines,
+      locked: false,
+      keys: {},
+    };
+    submitRef.current = fresh;
+    return fresh;
+  }
 
   function lockSubmit(event: React.FormEvent<HTMLFormElement>, intent: string): boolean {
-    if (submittingRef.current) {
+    const state = currentSubmitState();
+    if (state.locked) {
       event.preventDefault();
       return false;
     }
-    const key = (keysRef.current[intent] ??= newIdempotencyKey());
+    const key = (state.keys[intent] ??= newIdempotencyKey());
     const input = event.currentTarget.elements.namedItem("idempotencyKey");
     if (input instanceof HTMLInputElement) input.value = key;
-    submittingRef.current = true;
-    setSubmitting(true);
+    state.locked = true;
+    setLockedFor({ detailed: detailedLines, simplified: simplifiedLines });
     return true;
   }
 
@@ -154,7 +176,7 @@ export default function BalancesSection({
                   <form
                     action={recordWriteOff}
                     onSubmit={(event) => {
-                      if (submittingRef.current || !window.confirm(WRITE_OFF_CONFIRM_TEXT)) {
+                      if (currentSubmitState().locked || !window.confirm(WRITE_OFF_CONFIRM_TEXT)) {
                         event.preventDefault();
                         return;
                       }

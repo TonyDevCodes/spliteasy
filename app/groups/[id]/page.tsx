@@ -4,6 +4,7 @@ import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { computeDetailedBalances, computeNetBalances, computeSettlements } from "@/lib/settlements";
 import { getDisplayName, nameForUserId } from "@/lib/displayName";
 import { formatMoney } from "@/lib/money";
+import type { ExportMember } from "@/lib/export";
 import {
   collectReceiptPaths,
   RECEIPT_SIGNED_URL_TTL_SECONDS,
@@ -27,6 +28,12 @@ import { SignOutButton } from "@/app/sign-out-button";
 import { NotificationBell } from "@/app/notification-bell";
 
 const ACTIVITY_LIMIT = 50;
+
+type MemberRow = {
+  user_id: string;
+  role: string;
+  profiles: ExportMember | null;
+};
 
 const SITE_URL =process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -102,11 +109,12 @@ export default async function GroupDetailPage({
   const { data: members, error: membersError } = await supabase
     .from("group_members")
     .select("user_id, role, profiles(id, display_name, email)")
-    .eq("group_id", id);
+    .eq("group_id", id)
+    .returns<MemberRow[]>();
 
   // Group settings (currency) are editable by group admins, matching the
   // groups_update RLS policy. Write-offs are admin-only as well.
-  const myRole = (members ?? []).find((m: any) => m.user_id === user.id)?.role;
+  const myRole = (members ?? []).find((m) => m.user_id === user.id)?.role;
   const isAdmin = myRole === "admin" || myRole === "owner";
 
   const hasLoadError = Boolean(
@@ -140,7 +148,7 @@ export default async function GroupDetailPage({
   }
 
   const nameById: Record<string, string> = {};
-  (members ?? []).forEach((m: any) => {
+  (members ?? []).forEach((m) => {
     if (m.profiles) nameById[m.profiles.id] = getDisplayName(m.profiles);
   });
 
@@ -216,15 +224,15 @@ export default async function GroupDetailPage({
             <ExportMenu
               group={{ name: group.name, currency: group.currency }}
               expenses={expenses ?? []}
-              splits={(splits ?? []).map((s: any) => ({
+              splits={(splits ?? []).map((s) => ({
                 expense_id: s.expense_id,
                 user_id: s.user_id,
                 amount_owed: s.amount_owed,
               }))}
               settlements={settlements ?? []}
               members={(members ?? [])
-                .map((m: any) => m.profiles)
-                .filter((p: any) => p !== null)}
+                .map((m) => m.profiles)
+                .filter((p) => p !== null)}
               currentUserId={user.id}
             />
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { subscribeToTableChanges, uniqueChannelName } from "@/lib/realtime";
@@ -28,25 +28,25 @@ export function BellIcon({ className }: { className?: string }) {
 export function NotificationBell({ userId }: { userId: string }) {
   const [unread, setUnread] = useState(0);
 
-  const loadUnread = useCallback(async () => {
-    const supabase = createClient();
-    const { count, error } = await supabase
-      .from("notifications")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .is("read_at", null);
-
-    if (error) {
-      console.error("Unread notifications query error:", error);
-      return;
-    }
-    setUnread(count ?? 0);
-  }, [userId]);
-
   useEffect(() => {
+    const supabase = createClient();
+
+    async function loadUnread() {
+      const { count, error } = await supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .is("read_at", null);
+
+      if (error) {
+        console.error("Unread notifications query error:", error);
+        return;
+      }
+      setUnread(count ?? 0);
+    }
+
     loadUnread();
 
-    const supabase = createClient();
     const channel = subscribeToTableChanges(
       supabase,
       uniqueChannelName(`notifications-${userId}`),
@@ -58,7 +58,7 @@ export function NotificationBell({ userId }: { userId: string }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, loadUnread]);
+  }, [userId]);
 
   const badge = formatBadgeCount(unread);
 

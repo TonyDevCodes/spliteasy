@@ -5,6 +5,7 @@ import { getDisplayName } from '@/lib/displayName'
 import { isReceiptPathForGroup } from '@/lib/receipts'
 import { isValidCategory } from '@/lib/categories'
 import { buildRecurringRow } from '@/lib/recurring'
+import type { ExportMember } from '@/lib/export'
 import ExpenseForm from './ExpenseForm'
 
 export default async function NewExpensePage({
@@ -35,12 +36,13 @@ export default async function NewExpensePage({
     .from('group_members')
     .select('user_id, profiles(id, display_name, email)')
     .eq('group_id', groupId)
+    .returns<{ user_id: string; profiles: ExportMember }[]>()
 
   if (membersError || !members) {
     notFound()
   }
 
-  const formattedMembers = members.map((m: any) => ({
+  const formattedMembers = members.map((m) => ({
     id: m.profiles.id,
     name: getDisplayName(m.profiles),
   }))

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AuthShell } from "@/components/AuthShell";
@@ -15,6 +15,39 @@ const DEMO = demoCredentials(
 
 type Mode = "sign-in" | "sign-up";
 
+// Magic link / OAuth failures land here as a URL fragment, e.g.
+// #error=access_denied&error_description=Email+link+is+invalid+or+has+expired
+// and auth/callback redirects here with ?error=... when code exchange fails.
+function readUrlError(): string | null {
+  const hash = window.location.hash;
+  if (hash.includes("error")) {
+    const params = new URLSearchParams(hash.slice(1));
+    const description = params.get("error_description");
+    return description ? description.replace(/[+]/g, " ") : "Sign-in link is invalid or has expired.";
+  }
+
+  const callbackError = new URLSearchParams(window.location.search).get("error");
+  return callbackError ? callbackError.replace(/[+]/g, " ") : null;
+}
+
+// Read once and kept, so it stays stable after the URL is cleared.
+let cachedUrlError: string | null | undefined;
+
+function getUrlError(): string | null {
+  if (cachedUrlError === undefined) {
+    cachedUrlError = readUrlError();
+  }
+  return cachedUrlError;
+}
+
+function getServerUrlError(): string | null {
+  return null;
+}
+
+function subscribeToNothing(): () => void {
+  return () => {};
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -24,31 +57,26 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Magic link / OAuth failures land here as a URL fragment, e.g.
-    // #error=access_denied&error_description=Email+link+is+invalid+or+has+expired
-    const hash = window.location.hash;
-    if (hash.includes("error")) {
-      const params = new URLSearchParams(hash.slice(1));
-      const description = params.get("error_description");
-      setError(
-        description ? description.replace(/\+/g, " ") : "Sign-in link is invalid or has expired."
-      );
-      window.history.replaceState(null, "", window.location.pathname);
-      return;
-    }
+  const urlError = useSyncExternalStore(subscribeToNothing, getUrlError, getServerUrlError);
+  // undefined until the user acts; then it overrides the error that came from the URL.
+  const [localError, setError] = useState<string | null | undefined>(undefined);
+  const error = localError === undefined ? urlError : localError;
 
-    // auth/callback redirects here with ?error=... when code exchange fails.
-    const searchParams = new URLSearchParams(window.location.search);
-    const callbackError = searchParams.get("error");
-    if (callbackError) {
-      setError(callbackError.replace(/\+/g, " "));
+  useEffect(() => {
+    // The error was read once; clear it from the address bar. Restoring the cache
+    // keeps it stable if React re-runs this effect after the cleanup below. Never
+    // restore null: the hydration pass renders the server snapshot (null) and would
+    // overwrite the real value that getUrlError already read.
+    if (urlError !== null) {
+      cachedUrlError = urlError;
       window.history.replaceState(null, "", window.location.pathname);
     }
-  }, []);
+    return () => {
+      cachedUrlError = undefined;
+    };
+  }, [urlError]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

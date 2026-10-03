@@ -57,7 +57,9 @@ export default function NotificationsList({ userId }: { userId: string }) {
   }, [userId]);
 
   useEffect(() => {
-    load();
+    void (async () => {
+      await load();
+    })();
 
     const supabase = createClient();
     const channel = subscribeToTableChanges(
