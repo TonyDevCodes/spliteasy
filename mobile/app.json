@@ -15,9 +15,8 @@
       "package": "dev.tonydevcodes.spliteasy",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#F4F5FB",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
+        "backgroundColor": "#F7F9FD",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false

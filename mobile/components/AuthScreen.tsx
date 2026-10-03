@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
-import { Text } from "./AppText";
-import { Logo } from "./Logo";
+import { BrandLogo } from "./BrandLogo";
 import { useThemedStyles, type ThemeColors } from "../lib/theme";
 
 // Shared frame for sign-in and sign-up: logo and slogan on top, form below.
@@ -20,8 +19,7 @@ export function AuthScreen({ children }: { children: ReactNode }) {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.brand}>
-          <Logo size={72} withWordmark />
-          <Text style={styles.slogan}>Share costs. Stay friends.</Text>
+          <BrandLogo tagline="Share costs. Stay friends." />
         </View>
         {children}
       </ScrollView>
@@ -43,11 +41,5 @@ const makeStyles = (c: ThemeColors) =>
     brand: {
       alignItems: "center",
       marginBottom: 32,
-    },
-    slogan: {
-      marginTop: 12,
-      fontSize: 16,
-      color: c.textMuted,
-      textAlign: "center",
     },
   });

@@ -5,7 +5,7 @@ import { Stack, useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { supabase } from "../../lib/supabase";
 import { useTheme, useThemedStyles, type ThemeColors } from "../../lib/theme";
-import { Logo } from "../../components/Logo";
+import { BrandLogo } from "../../components/BrandLogo";
 import { EmptyState } from "../../components/EmptyState";
 import { SkeletonList } from "../../components/Skeleton";
 import { useAuth } from "../../lib/auth-context";
@@ -107,7 +107,7 @@ export default function GroupsScreen() {
         options={{
           title: "Your groups",
           headerTitle: "",
-          headerLeft: () => <Logo size={24} withWordmark />,
+          headerLeft: () => <BrandLogo layout="inline" size={36} />,
           headerRight: () => (
             <View style={styles.headerRightRow}>
               <TouchableOpacity

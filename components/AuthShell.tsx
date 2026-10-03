@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { ArrowLeftRight, CheckCircle2, Users } from "lucide-react";
-import { Logo } from "@/components/Logo";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const BENEFITS = [
   { icon: Users, text: "Create groups in seconds" },
@@ -20,7 +20,7 @@ export function AuthShell({ title, children }: { title: string; children: ReactN
   return (
     <div className="auth-shell flex min-h-screen flex-1 bg-background lg:grid lg:grid-cols-2">
       <aside className="hidden flex-col gap-10 bg-hero p-14 text-on-hero lg:flex">
-        <Logo size={56} withWordmark tone="onHero" />
+        <BrandLogo layout="inline" size={72} tone="light" />
 
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-[480px]">
@@ -57,9 +57,8 @@ export function AuthShell({ title, children }: { title: string; children: ReactN
 
       <main className="flex flex-1 items-center justify-center px-4 py-10">
         <div className="flex w-full max-w-[400px] flex-col gap-6 lg:max-w-[440px] lg:rounded-[20px] lg:border lg:border-border lg:bg-surface lg:p-10 lg:shadow-sm">
-          <div className="flex flex-col items-center gap-2 text-center lg:hidden">
-            <Logo size={48} withWordmark />
-            <p className="text-sm text-text-muted">Share costs. Stay friends.</p>
+          <div className="lg:hidden">
+            <BrandLogo tagline="Share costs. Stay friends." />
           </div>
           <h1 className="text-2xl font-extrabold text-text lg:text-[28px]">{title}</h1>
           {children}

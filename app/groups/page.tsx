@@ -6,7 +6,7 @@ import { formatMoney } from "@/lib/money";
 import { computeNetBalances } from "@/lib/settlements";
 import { SignOutButton } from "@/app/sign-out-button";
 import { EmptyState } from "@/components/EmptyState";
-import { Logo } from "@/components/Logo";
+import { BrandLogo } from "@/components/BrandLogo";
 import { NotificationBell } from "@/app/notification-bell";
 
 type GroupRow = {
@@ -111,7 +111,7 @@ export default async function GroupsPage() {
   return (
     <div className="flex flex-1 flex-col items-center gap-6 bg-background px-4 py-12">
       <div className="flex w-full max-w-md">
-        <Logo size={24} withWordmark />
+        <BrandLogo layout="inline" size={36} />
       </div>
 
       <div className="flex w-full max-w-md items-center justify-between text-sm text-text-muted">
