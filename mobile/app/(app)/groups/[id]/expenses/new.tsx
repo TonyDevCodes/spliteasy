@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { Text, TextInput } from "../../../../../components/AppText";
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -37,11 +38,28 @@ function newIdempotencyKey(): string {
   });
 }
 
+function formatLocalDate(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
 function localToday(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${now.getFullYear()}-${month}-${day}`;
+  return formatLocalDate(new Date());
+}
+
+// Parses YYYY-MM-DD as a local date (new Date("YYYY-MM-DD") would be UTC).
+function parseLocalDate(value: string): Date {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function formatDisplayDate(value: string): string {
+  return parseLocalDate(value).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 type ProfileRow = {
@@ -84,6 +102,7 @@ export default function NewExpenseScreen() {
   const [repeat, setRepeat] = useState<"none" | RecurringFrequency>("none");
   // Empty means "today" (in the device's time zone).
   const [startDate, setStartDate] = useState("");
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // One key per screen instance: a retry after a failed save reuses it.
@@ -509,17 +528,28 @@ export default function NewExpenseScreen() {
       {repeat !== "none" && (
         <>
           <Text style={styles.label}>Starts on</Text>
-          <TextInput
-            placeholderTextColor={colors.placeholder}
-            style={styles.input}
-            value={startDate || localToday()}
-            onChangeText={setStartDate}
-            placeholder="YYYY-MM-DD"
-            keyboardType="numbers-and-punctuation"
-            autoCapitalize="none"
-            autoCorrect={false}
-            maxLength={10}
-          />
+          <TouchableOpacity
+            style={[styles.input, styles.dateRow]}
+            onPress={() => setShowDatePicker(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`Starts on ${formatDisplayDate(effectiveStart)}`}
+          >
+            <Text style={styles.dateText}>{formatDisplayDate(effectiveStart)}</Text>
+            <Ionicons name="calendar-outline" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={parseLocalDate(effectiveStart)}
+              mode="date"
+              minimumDate={parseLocalDate(localToday())}
+              onChange={(event, selected) => {
+                setShowDatePicker(Platform.OS === "ios");
+                if (event.type === "set" && selected) {
+                  setStartDate(formatLocalDate(selected));
+                }
+              }}
+            />
+          )}
           {isValidDateString(effectiveStart) && isDueNow(effectiveStart, localToday()) && (
             <Text style={[styles.mutedText, styles.noteSpacing]}>
               This date is today or in the past, so the first expense will be created by the next daily run.
@@ -599,6 +629,15 @@ const makeStyles = (c: ThemeColors) =>
       fontSize: 16,
       color: c.text,
       backgroundColor: c.inputBackground,
+    },
+    dateRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    dateText: {
+      fontSize: 16,
+      color: c.text,
     },
     chipRow: {
       flexDirection: "row",
