@@ -60,16 +60,6 @@ backend as the live demo, so **Try the demo** works there too.
   splits remain and are shown as "Deleted user", and another member is promoted to group admin if needed.
   A group admin can **write off** a debt with a deleted user so the group can still become fully settled.
 
-## Screenshots
-
-| Expenses | Notifications | Profile and theme | Dark mode |
-| --- | --- | --- | --- |
-| <img src="docs/screenshots/mobile-expenses.png" width="200" alt="Expenses tab" /> | <img src="docs/screenshots/mobile-notifications.png" width="200" alt="Notifications" /> | <img src="docs/screenshots/mobile-profile-theme.png" width="200" alt="Profile with theme setting" /> | <img src="docs/screenshots/mobile-dark-mode.png" width="200" alt="Balances in dark mode" /> |
-
-| Web: sign in | Web: sign up | Web: group |
-| --- | --- | --- |
-| <img src="docs/screenshots/web-login.png" width="260" alt="Web sign in with Try the demo" /> | <img src="docs/screenshots/web-signup.png" width="260" alt="Web sign up" /> | <img src="docs/screenshots/web-group.png" width="260" alt="Web group page with balances and expenses" /> |
-
 ## Tech stack
 
 | Layer | Technology |
