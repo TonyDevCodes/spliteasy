@@ -6,11 +6,20 @@ tangle of debts to the smallest number of payments.
 
 **Live demo:** https://spliteasy-beta-five.vercel.app
 
-<p>
-  <img src="docs/screenshots/mobile-groups.png" width="230" alt="Groups list" />
-  <img src="docs/screenshots/mobile-balances-detailed.png" width="230" alt="Balances, detailed view" />
-  <img src="docs/screenshots/mobile-balances-simplified.png" width="230" alt="Balances, simplified debts" />
-</p>
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/01-sign-in.png" width="200" alt="Sign in screen with Try the demo" /></td>
+    <td align="center"><img src="docs/screenshots/02-balances.png" width="200" alt="Balances for Weekend in Amsterdam" /></td>
+    <td align="center"><img src="docs/screenshots/03-expenses.png" width="200" alt="Expenses with spending by category" /></td>
+    <td align="center"><img src="docs/screenshots/04-add-expense.png" width="200" alt="Add expense form with receipt photo" /></td>
+  </tr>
+  <tr>
+    <td align="center">Sign in or try the demo</td>
+    <td align="center">Balances (detailed and simplified)</td>
+    <td align="center">Expenses by category</td>
+    <td align="center">Add expense with receipt photo</td>
+  </tr>
+</table>
 
 ## Try it
 
