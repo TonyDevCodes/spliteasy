@@ -8,10 +8,10 @@ tangle of debts to the smallest number of payments.
 
 <table>
   <tr>
-    <td align="center" valign="top"><img src="docs/screenshots/01-sign-in.png" width="220" alt="Sign in screen with Try the demo" /></td>
-    <td align="center" valign="top"><img src="docs/screenshots/02-balances.png" width="220" alt="Balances for Weekend in Amsterdam" /></td>
-    <td align="center" valign="top"><img src="docs/screenshots/03-expenses.png" width="220" alt="Expenses with spending by category" /></td>
-    <td align="center" valign="top"><img src="docs/screenshots/04-add-expense.png" width="220" alt="Add expense form with receipt photo" /></td>
+    <td align="center" valign="top"><img src="docs/screenshots/01-sign-in.png" width="180" alt="Sign in screen with Try the demo" /></td>
+    <td align="center" valign="top"><img src="docs/screenshots/02-balances.png" width="180" alt="Balances for Weekend in Amsterdam" /></td>
+    <td align="center" valign="top"><img src="docs/screenshots/03-expenses.png" width="180" alt="Expenses with spending by category" /></td>
+    <td align="center" valign="top"><img src="docs/screenshots/04-add-expense.png" width="180" alt="Add expense form with receipt photo" /></td>
   </tr>
   <tr>
     <td align="center">Sign in or try the demo</td>
